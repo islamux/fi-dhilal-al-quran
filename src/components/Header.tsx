@@ -1,4 +1,4 @@
-import { Menu, Sun, Moon, Bookmark as BookmarkIcon, CheckCircle } from 'lucide-react';
+import { Menu, Sun, Moon, Bookmark as BookmarkIcon, CircleCheck } from 'lucide-react';
 import { toArabicNumerals } from '../utils';
 import type { Surah } from '../types';
 
@@ -76,7 +76,7 @@ export function Header({
           }`}
           aria-label={completedSurahs.includes(selectedSurah.id) ? 'تمت المدارسة' : 'تأكيد المدارسة'}
         >
-          <CheckCircle className="w-4 h-4" />
+          <CircleCheck className="w-4 h-4" />
           <span className="text-[11px] font-mono uppercase tracking-wider hidden md:inline">
             {completedSurahs.includes(selectedSurah.id) ? 'Finished' : 'Mark Study'}
           </span>

@@ -1,5 +1,5 @@
 import { motion } from 'motion/react';
-import { CheckCircle, Bookmark as BookmarkIcon, Compass } from 'lucide-react';
+import { CircleCheck, Bookmark as BookmarkIcon, Compass } from 'lucide-react';
 import { toArabicNumerals } from '../utils';
 import { SURAHS } from '../data/surahs';
 import type { Bookmark, HistoryItem } from '../types';
@@ -31,7 +31,7 @@ export function StatsTab({ isDarkMode, completedSurahs, bookmarks, readingHistor
           isDarkMode ? 'bg-[#152e25]/20 border-emerald-500/20' : 'bg-[#eefcf5] border-emerald-500/20'
         }`} id="bento-completed">
           <div className="absolute left-3 top-3 text-emerald-500 hover:scale-110 transition-transform">
-            <CheckCircle className="w-8 h-8 opacity-40" />
+            <CircleCheck className="w-8 h-8 opacity-40" />
           </div>
           <h4 className="text-xs text-[#22c55e] font-serif font-bold uppercase tracking-widest leading-none">سور قُرئت وتُدبرت</h4>
           <div className="text-3xl font-extrabold text-emerald-500 font-mono">

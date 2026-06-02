@@ -17,6 +17,10 @@
         "./*"
       ]
     },
+    "types": [
+      "node"
+    ],
+    "rootDir": ".",
     "allowImportingTsExtensions": true,
     "noEmit": true
   }

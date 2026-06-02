@@ -21,7 +21,9 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   render(): ReactNode {
-    if ((this as Component<Props, State>).state.hasError) {
+    const self = this as Component<Props, State>;
+    if (self.state.hasError) {
+      const err = self.state.error;
       return (
         <div role="alert" className="flex flex-col items-center justify-center min-h-screen p-8 text-center bg-brand-dark-bg text-white font-sans">
           <h1 className="text-2xl font-bold text-gilded-gold mb-4 font-serif">حدث خطأ غير متوقع</h1>
@@ -34,17 +36,17 @@ export class ErrorBoundary extends Component<Props, State> {
           >
             إعادة تحميل
           </button>
-          {(this as Component<Props, State>).state.error && (
+          {err && (
             <details className="mt-6 max-w-md text-left">
               <summary className="text-xs text-brand-grey cursor-pointer font-mono">تفاصيل الخطأ</summary>
               <pre className="mt-2 text-xs text-red-400 bg-black/30 p-4 rounded-none overflow-auto font-mono">
-                {(this as Component<Props, State>).state.error.message}
+                {err.message}
               </pre>
             </details>
           )}
         </div>
       );
     }
-    return (this as Component<Props, State>).props.children;
+    return self.props.children;
   }
 }

@@ -1,0 +1,67 @@
+@import url('https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400;1,700&family=Tajawal:wght@300;400;500;700;800&family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=JetBrains+Mono:wght@400;500;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Tajawal", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-amiri: "Amiri", Georgia, serif;
+  --font-serif: "Playfair Display", Georgia, serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  /* Artistic Flair Palette (Gilded Terracotta & High-Art Dark/Light Contrast) */
+  --color-gilded-gold: #F27D26;
+  --color-gilded-hover: #fa8f3e;
+  --color-gilded-light: #fbe5d3;
+
+  /* Light Theme (Sophisticated Gallery / Studio look) */
+  --color-brand-parchment: #FAF9F6;
+  --color-brand-stone: #F2EFE9;
+  --color-brand-navy: #0E0E0E;
+  --color-brand-navy-hover: #1E1E1E;
+  --color-brand-rich: #0E0E0E;
+  --color-brand-faded: #5C5C5C;
+  --color-brand-grey: #808080;
+  --color-brand-border: #E0DCD3;
+
+  /* Dark Theme (Artistic Pitch Black & Gunmetal Studio look) */
+  --color-brand-dark-bg: #0E0E0E;
+  --color-brand-dark-surface: #151515;
+  --color-brand-dark-hover: #1E1E1E;
+  --color-brand-dark-active: #E0E0E0;
+  --color-brand-dark-mute: #888888;
+  --color-brand-dark-border: #2A2A2A;
+}
+
+@layer base {
+  body {
+    font-family: var(--font-sans);
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+}
+
+/* Customized exegesis text styles */
+.tafsir-text p {
+  margin-bottom: 1.25rem;
+  line-height: 2;
+  text-align: justify;
+  font-size: 1.05rem;
+}
+
+/* Custom scrollbar to keep layout premium */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #F27D2633;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #F27D2666;
+}
+

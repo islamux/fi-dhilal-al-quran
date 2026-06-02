@@ -1,0 +1,6 @@
+{
+  "name": "في ظلال القرآن",
+  "description": "خلوة رقمية متميزة لتصفح بليغ، تدبر تفاعلي، ومطالعة exegesis 'في ظلال القرآن' لسيد قطب بأسلوب أدبي حركي، معززاً بمدرس اصطناعي ذكي لقرع وجدان الآيات المباركة.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

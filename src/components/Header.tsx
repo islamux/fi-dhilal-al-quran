@@ -48,6 +48,7 @@ export function Header({
             isDarkMode ? 'border-brand-dark-border text-gilded-gold hover:bg-[#151515]' : 'border-brand-border text-brand-rich hover:bg-brand-stone'
           }`}
           title={isDarkMode ? 'التحول للمطالعة النهارية' : 'التحول للمطالعة الليلية'}
+          aria-label={isDarkMode ? 'التحول للوضع النهاري' : 'التحول للوضع الليلي'}
         >
           {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
         </button>
@@ -60,6 +61,7 @@ export function Header({
               : isDarkMode ? 'border-brand-dark-border text-brand-dark-mute hover:bg-brand-dark-surface hover:text-white' : 'border-brand-border text-brand-faded hover:bg-brand-stone hover:text-brand-rich'
           }`}
           title={isBookmarked(selectedSurah.id) ? 'حذف هذه السورة من المفضلة' : 'حفظ السورة في علامات وتدبّر المفضلة'}
+          aria-label={isBookmarked(selectedSurah.id) ? 'حذف السورة من المفضلة' : 'حفظ السورة في المفضلة'}
         >
           <BookmarkIcon className={`w-4 h-4 ${isBookmarked(selectedSurah.id) ? 'fill-gilded-gold text-gilded-gold' : ''}`} />
           <span className="text-[11px] font-mono uppercase tracking-wider hidden md:inline">Mark Surah</span>
@@ -72,6 +74,7 @@ export function Header({
               ? 'border-emerald-600 text-emerald-500 bg-emerald-500/5 font-bold'
               : isDarkMode ? 'border-brand-dark-border text-brand-dark-mute hover:bg-brand-dark-surface' : 'border-brand-border text-brand-faded hover:bg-brand-stone'
           }`}
+          aria-label={completedSurahs.includes(selectedSurah.id) ? 'تمت المدارسة' : 'تأكيد المدارسة'}
         >
           <CheckCircle className="w-4 h-4" />
           <span className="text-[11px] font-mono uppercase tracking-wider hidden md:inline">

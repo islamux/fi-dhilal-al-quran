@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense, lazy } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { SURAHS } from './data/surahs';
 import { Surah } from './types';
@@ -11,11 +11,12 @@ import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
 import { SurahBanner } from './components/SurahBanner';
 import { TabBar } from './components/TabBar';
-import { OverviewTab } from './components/OverviewTab';
-import { VersesTab } from './components/VersesTab';
-import { ChatTab } from './components/ChatTab';
-import { StatsTab } from './components/StatsTab';
 import { Footer } from './components/Footer';
+
+const OverviewTab = lazy(() => import('./components/OverviewTab'));
+const VersesTab = lazy(() => import('./components/VersesTab'));
+const ChatTab = lazy(() => import('./components/ChatTab'));
+const StatsTab = lazy(() => import('./components/StatsTab'));
 
 export default function App() {
   const [selectedSurah, setSelectedSurah] = useState<Surah>(SURAHS[0]);
@@ -36,6 +37,9 @@ export default function App() {
     fetchTafsir(selectedSurah, 'كاملة');
     addHistoryItem(selectedSurah, 'كاملة');
     setVerseRangeValue('كاملة');
+  }, [selectedSurah]);
+
+  useEffect(() => {
     resetChat(selectedSurah);
   }, [selectedSurah]);
 
@@ -113,52 +117,54 @@ export default function App() {
             <SurahBanner isDarkMode={isDarkMode} selectedSurah={selectedSurah} />
             <TabBar activeTab={activeTab} setActiveTab={setActiveTab} isDarkMode={isDarkMode} />
 
-            <AnimatePresence mode="wait">
-              {activeTab === 'overview' && (
-                <OverviewTab
-                  isDarkMode={isDarkMode}
-                  loadingTafsir={loadingTafsir}
-                  currentTafsir={currentTafsir}
-                  selectedSurah={selectedSurah}
-                />
-              )}
-              {activeTab === 'verses' && (
-                <VersesTab
-                  isDarkMode={isDarkMode}
-                  loadingTafsir={loadingTafsir}
-                  currentTafsir={currentTafsir}
-                  verseRangeValue={verseRangeValue}
-                  setVerseRangeValue={setVerseRangeValue}
-                  selectedSurah={selectedSurah}
-                  fetchTafsir={fetchTafsir}
-                  toggleBookmark={toggleBookmark}
-                  isBookmarked={isBookmarked}
-                />
-              )}
-              {activeTab === 'chat' && (
-                <ChatTab
-                  isDarkMode={isDarkMode}
-                  chatInput={chatInput}
-                  setChatInput={setChatInput}
-                  chatMessages={chatMessages}
-                  loadingChat={loadingChat}
-                  chatBottomRef={chatBottomRef}
-                  handleSendMessage={handleSendMessage}
-                  selectedSurah={selectedSurah}
-                  resetChat={resetChat}
-                />
-              )}
-              {activeTab === 'stats' && (
-                <StatsTab
-                  isDarkMode={isDarkMode}
-                  completedSurahs={completedSurahs}
-                  bookmarks={bookmarks}
-                  readingHistory={readingHistory}
-                  clearAll={clearAll}
-                  removeBookmark={removeBookmark}
-                />
-              )}
-            </AnimatePresence>
+            <Suspense fallback={<div className="flex justify-center py-16"><div className="w-8 h-8 border-2 border-gilded-gold/20 border-t-gilded-gold animate-spin" /></div>}>
+              <AnimatePresence mode="wait">
+                {activeTab === 'overview' && (
+                  <OverviewTab
+                    isDarkMode={isDarkMode}
+                    loadingTafsir={loadingTafsir}
+                    currentTafsir={currentTafsir}
+                    selectedSurah={selectedSurah}
+                  />
+                )}
+                {activeTab === 'verses' && (
+                  <VersesTab
+                    isDarkMode={isDarkMode}
+                    loadingTafsir={loadingTafsir}
+                    currentTafsir={currentTafsir}
+                    verseRangeValue={verseRangeValue}
+                    setVerseRangeValue={setVerseRangeValue}
+                    selectedSurah={selectedSurah}
+                    fetchTafsir={fetchTafsir}
+                    toggleBookmark={toggleBookmark}
+                    isBookmarked={isBookmarked}
+                  />
+                )}
+                {activeTab === 'chat' && (
+                  <ChatTab
+                    isDarkMode={isDarkMode}
+                    chatInput={chatInput}
+                    setChatInput={setChatInput}
+                    chatMessages={chatMessages}
+                    loadingChat={loadingChat}
+                    chatBottomRef={chatBottomRef}
+                    handleSendMessage={handleSendMessage}
+                    selectedSurah={selectedSurah}
+                    resetChat={resetChat}
+                  />
+                )}
+                {activeTab === 'stats' && (
+                  <StatsTab
+                    isDarkMode={isDarkMode}
+                    completedSurahs={completedSurahs}
+                    bookmarks={bookmarks}
+                    readingHistory={readingHistory}
+                    clearAll={clearAll}
+                    removeBookmark={removeBookmark}
+                  />
+                )}
+              </AnimatePresence>
+            </Suspense>
 
             <Footer />
           </div>

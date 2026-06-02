@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { toArabicNumerals } from '../utils';
 import type { Surah } from '../types';
 
@@ -6,7 +7,7 @@ interface SurahBannerProps {
   selectedSurah: Surah;
 }
 
-export function SurahBanner({ isDarkMode, selectedSurah }: SurahBannerProps) {
+export const SurahBanner = memo(function SurahBanner({ isDarkMode, selectedSurah }: SurahBannerProps) {
   return (
     <div className={`p-6 sm:p-8 rounded-none border relative overflow-hidden transition-all text-right ${
       isDarkMode ? 'bg-[#151515] border-brand-dark-border' : 'bg-white border-brand-border'
@@ -44,4 +45,4 @@ export function SurahBanner({ isDarkMode, selectedSurah }: SurahBannerProps) {
       </div>
     </div>
   );
-}
+});

@@ -22,6 +22,9 @@ export function VersesTab({
   return (
     <motion.div
       key="verses-panel"
+      id="panel-verses"
+      role="tabpanel"
+      aria-labelledby="active-tab-verses"
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -15 }}
@@ -40,6 +43,7 @@ export function VersesTab({
         <div className="flex gap-2 shrink-0">
           <select
             id="ayah-range-select"
+            aria-label="اختيار نطاق الآيات"
             className={`rounded-none border px-3 py-2 text-xs font-mono select-none outline-none ${
               isDarkMode ? 'bg-[#1e1e1e] border-brand-dark-border text-white focus:border-gilded-gold' : 'bg-white border-brand-border text-brand-rich focus:border-gilded-gold'
             }`}
@@ -56,6 +60,7 @@ export function VersesTab({
           </select>
           <button
             id="refresh-tafsir-btn"
+            aria-label="تشغيل التأويل والتفسير"
             onClick={() => fetchTafsir(selectedSurah, verseRangeValue)}
             className="px-3.5 py-2 bg-gilded-gold text-white font-mono font-bold text-xs rounded-none hover:bg-gilded-hover transition-colors flex items-center gap-1.5"
           >
@@ -96,6 +101,7 @@ export function VersesTab({
         <div className="flex justify-center mt-6 border-t pt-4 border-gilded-gold/10 gap-3">
           <button
             id="bookmark-verse-btn"
+            aria-label={isBookmarked(selectedSurah.id, verseRangeValue === 'كاملة' ? undefined : parseInt(verseRangeValue)) ? 'إزالة من المفضلة' : 'إضافة إلى المفضلة'}
             onClick={() => toggleBookmark(selectedSurah.id, verseRangeValue === 'كاملة' ? undefined : parseInt(verseRangeValue))}
             className={`text-[11px] font-mono uppercase tracking-wider px-4 py-2 border rounded-none transition-all flex items-center gap-2 ${
               isBookmarked(selectedSurah.id, verseRangeValue === 'كاملة' ? undefined : parseInt(verseRangeValue))

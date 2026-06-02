@@ -2,6 +2,14 @@ import { Router, type Request, type Response } from 'express';
 import { getGeminiClient } from '../gemini';
 
 const router = Router();
+const TIMEOUT_MS = 30_000;
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => setTimeout(() => reject(new Error('timeout')), ms))
+  ]);
+}
 
 router.post('/api/chat', async (req: Request, res: Response) => {
   const { messages, selectedSurah } = req.body;
@@ -13,7 +21,7 @@ router.post('/api/chat', async (req: Request, res: Response) => {
 
   try {
     const ai = getGeminiClient();
-    const cleanHistory = messages.map((msg: any) => ({
+    const cleanHistory = messages.map((msg: { role: string; content: string }) => ({
       role: msg.role === 'user' ? 'user' : 'model',
       parts: [{ text: msg.content }]
     }));
@@ -24,18 +32,18 @@ router.post('/api/chat', async (req: Request, res: Response) => {
 ${selectedSurah ? `السورة المحددة حالياً والمطروحة للدراسة هي سورة ${selectedSurah.arName} (${selectedSurah.name}) وبها عدد ${selectedSurah.versesCount} آيات.` : ''}
 لا تتخيل معلومات فقهية مغلوطة، وركّز دائماً على المعاني القلبية والحركية والجمال الفني البليغ.`;
 
-    const response = await ai.models.generateContent({
+    const response = await withTimeout(ai.models.generateContent({
       model: 'gemini-3.5-flash',
       contents: cleanHistory,
       config: {
         systemInstruction: contextualPrompt
       }
-    });
+    }), TIMEOUT_MS);
 
     res.json({ reply: response.text || 'لم يتمكن الذكاء الاصطناعي من صياغة إجابة مقنعة، يرجى تكرار المحاولة.' });
 
-  } catch (apiError: any) {
-    console.warn('Gemini chat API is not accessible or unconfigured. Serving automated scholarly fallback reply:', apiError.message);
+  } catch (apiError: unknown) {
+    console.warn('Gemini chat API is not accessible or unconfigured. Serving automated scholarly fallback reply:', apiError instanceof Error ? apiError.message : String(apiError));
 
     const userText = messages[messages.length - 1]?.content || '';
     let reply = `أهلاً بك يا متدبر كتاب الله العظيم وطالب ظلال القرآن الوارفة. 

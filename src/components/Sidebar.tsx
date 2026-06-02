@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
 import { Search, X, Compass } from 'lucide-react';
 import { toArabicNumerals } from '../utils';
@@ -26,6 +27,24 @@ export function Sidebar({
   mobileSidebarOpen, setMobileSidebarOpen, juzFilter, setJuzFilter,
   typeFilter, setTypeFilter, sidebarTab, setSidebarTab, completedSurahs
 }: SidebarProps) {
+  const closeBtnRef = useRef<HTMLButtonElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const firstJuzBtnRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (mobileSidebarOpen && closeBtnRef.current) {
+      closeBtnRef.current.focus();
+    }
+  }, [mobileSidebarOpen]);
+
+  useEffect(() => {
+    if (sidebarTab === 'surahs' && searchInputRef.current) {
+      searchInputRef.current.focus();
+    } else if (sidebarTab === 'juz' && firstJuzBtnRef.current) {
+      firstJuzBtnRef.current.focus();
+    }
+  }, [sidebarTab]);
+
   const filteredSurahs = SURAHS.filter(surah => {
     const matchesSearch = surah.name.toLowerCase().includes(searchQuery.toLowerCase()) || surah.arName.includes(searchQuery);
     const matchesType = typeFilter === 'all' || surah.type === typeFilter;
@@ -34,7 +53,7 @@ export function Sidebar({
   });
 
   return (
-    <aside className={`fixed lg:relative top-0 right-0 z-50 h-full w-[330px] sm:w-[350px] shrink-0 flex flex-col transition-transform lg:translate-x-0 border-l ${
+    <nav aria-label="فهارس السور والأجزاء" className={`fixed lg:relative top-0 right-0 z-50 h-full w-[330px] sm:w-[350px] shrink-0 flex flex-col transition-transform lg:translate-x-0 border-l ${
       isDarkMode ? 'bg-brand-dark-surface border-brand-dark-border text-brand-dark-active' : 'bg-brand-stone border-brand-border text-brand-rich'
     } ${mobileSidebarOpen ? 'translate-x-0' : 'translate-x-full'}`} id="right-sidebar">
       <div className={`p-6 border-b flex items-start justify-between ${
@@ -47,6 +66,7 @@ export function Sidebar({
           </h1>
         </div>
         <button
+          ref={closeBtnRef}
           id="close-sidebar-btn"
           onClick={() => setMobileSidebarOpen(false)}
           className="lg:hidden p-1 rounded hover:bg-black/10 focus:outline-none text-brand-grey"
@@ -56,9 +76,16 @@ export function Sidebar({
         </button>
       </div>
 
-      <div className={`flex border-b text-sm font-medium ${isDarkMode ? 'border-brand-dark-border' : 'border-brand-border'}`} id="sidebar-tabs">
+      <div
+        role="tablist"
+        aria-label="فهارس السور والأجزاء"
+        className={`flex border-b text-sm font-medium ${isDarkMode ? 'border-brand-dark-border' : 'border-brand-border'}`} id="sidebar-tabs"
+      >
         <button
           id="sidebar-tab-surahs"
+          role="tab"
+          aria-selected={sidebarTab === 'surahs'}
+          aria-controls="panel-surah-list"
           onClick={() => setSidebarTab('surahs')}
           className={`flex-1 py-3 text-center transition-colors relative ${
             sidebarTab === 'surahs' ? 'text-gilded-gold' : isDarkMode ? 'text-brand-dark-mute hover:text-white' : 'text-brand-faded hover:text-brand-rich'
@@ -69,6 +96,9 @@ export function Sidebar({
         </button>
         <button
           id="sidebar-tab-juz"
+          role="tab"
+          aria-selected={sidebarTab === 'juz'}
+          aria-controls="panel-juz-list"
           onClick={() => setSidebarTab('juz')}
           className={`flex-1 py-3 text-center transition-colors relative ${
             sidebarTab === 'juz' ? 'text-gilded-gold' : isDarkMode ? 'text-brand-dark-mute hover:text-white' : 'text-brand-faded hover:text-brand-rich'
@@ -88,16 +118,18 @@ export function Sidebar({
           }`}>
             <Search className="w-4 h-4 text-gilded-gold shrink-0 mr-1 ml-2" />
             <input
+              ref={searchInputRef}
               id="search-surah-input"
               type="text"
               placeholder="ابحث عن سورة أو آية..."
+              aria-label="ابحث عن سورة"
               dir="rtl"
               className="bg-transparent w-full focus:outline-none placeholder-brand-grey font-sans"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
             {searchQuery && (
-              <button id="clear-search-btn" onClick={() => setSearchQuery('')} className="p-0.5 hover:bg-black/10 rounded-sm">
+              <button id="clear-search-btn" aria-label="مسح البحث" onClick={() => setSearchQuery('')} className="p-0.5 hover:bg-black/10 rounded-sm">
                 <X className="w-3.5 h-3.5" />
               </button>
             )}
@@ -107,6 +139,7 @@ export function Sidebar({
               <button
                 key={type}
                 id={`filter-type-${type}`}
+                aria-label={type === 'all' ? 'عرض الكل' : type === 'مكية' ? 'تصفية بالسور المكية' : 'تصفية بالسور المدنية'}
                 onClick={() => setTypeFilter(type)}
                 className={`flex-1 py-1 px-2.5 rounded-none border text-center transition-all ${
                   typeFilter === type
@@ -121,7 +154,7 @@ export function Sidebar({
           {juzFilter !== null && (
             <div className="flex items-center justify-between bg-gilded-gold/10 border border-gilded-gold/30 rounded-none px-2.5 py-1 text-xs text-gilded-gold">
               <span>تصفح الجزء: {toArabicNumerals(juzFilter)}</span>
-              <button id="clear-juz-filter" onClick={() => setJuzFilter(null)} className="hover:bg-gilded-gold/20 p-0.5 rounded-none">
+              <button id="clear-juz-filter" aria-label="إزالة تصفية الجزء" onClick={() => setJuzFilter(null)} className="hover:bg-gilded-gold/20 p-0.5 rounded-none">
                 <X className="w-3 h-3" />
               </button>
             </div>
@@ -131,7 +164,8 @@ export function Sidebar({
 
       <div className="flex-1 overflow-y-auto p-0 space-y-0" id="sidebar-scrollable-content">
         {sidebarTab === 'surahs' ? (
-          filteredSurahs.length > 0 ? (
+          <div role="tabpanel" id="panel-surah-list" aria-labelledby="sidebar-tab-surahs">
+            {filteredSurahs.length > 0 ? (
             filteredSurahs.map((surah) => {
               const isSelected = selectedSurah.id === surah.id;
               const isCompleted = completedSurahs.includes(surah.id);
@@ -139,6 +173,8 @@ export function Sidebar({
                 <button
                   id={`surah-card-${surah.id}`}
                   key={surah.id}
+                  role="option"
+                  aria-selected={isSelected}
                   onClick={() => { setSelectedSurah(surah); setMobileSidebarOpen(false); }}
                   className={`w-full text-right p-4 rounded-none transition-all border-b border-[#2A2A2A] flex items-center justify-between ${
                     isSelected
@@ -174,13 +210,16 @@ export function Sidebar({
             <div className="text-center py-12 text-sm text-brand-grey font-sans" id="no-search-results">
               لا توجد سور تناسب محددات البحث.
             </div>
-          )
+          )}
+          </div>
         ) : (
-          <div className="space-y-2 p-1" id="juz-index-list">
+          <div role="tabpanel" id="panel-juz-list" aria-labelledby="sidebar-tab-juz" className="space-y-2 p-1">
             {JUZ_INDEX.map((j) => (
               <button
+                ref={j.juz === 1 ? firstJuzBtnRef : undefined}
                 id={`juz-btn-${j.juz}`}
                 key={j.juz}
+                aria-label={`تصفية بالسور في ${j.name}`}
                 onClick={() => { setJuzFilter(j.juz); setSidebarTab('surahs'); }}
                 className={`w-full text-right p-3 rounded-lg border transition-all ${
                   juzFilter === j.juz
@@ -213,9 +252,9 @@ export function Sidebar({
           </span>
         </div>
         <div className={`w-full h-1.5 rounded-full overflow-hidden ${isDarkMode ? 'bg-brand-dark-border' : 'bg-brand-border'}`}>
-          <div className="bg-gilded-gold h-full" style={{ width: `${(completedSurahs.length / SURAHS.length) * 105}%` }} />
+          <div className="bg-gilded-gold h-full" style={{ width: `${(completedSurahs.length / SURAHS.length) * 100}%` }} />
         </div>
       </div>
-    </aside>
+    </nav>
   );
 }

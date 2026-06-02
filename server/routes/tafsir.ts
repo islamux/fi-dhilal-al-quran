@@ -5,11 +5,28 @@ import { getLocalTafsirFallback } from '../localTafsir';
 
 const router = Router();
 
+const tafsirCache = new Map<string, unknown>();
+const TIMEOUT_MS = 30_000;
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => setTimeout(() => reject(new Error('timeout')), ms))
+  ]);
+}
+
 router.post('/api/tafsir', async (req: Request, res: Response) => {
   const { surahId, surahName, verseRange = 'كاملة' } = req.body;
 
   if (!surahId || !surahName) {
     res.status(400).json({ error: 'يرجى تقديم رقم السورة واسمها لمطابقة المخطط.' });
+    return;
+  }
+
+  const cacheKey = `${surahId}-${verseRange}`;
+  const cached = tafsirCache.get(cacheKey);
+  if (cached) {
+    res.json(cached);
     return;
   }
 
@@ -44,7 +61,7 @@ router.post('/api/tafsir', async (req: Request, res: Response) => {
   ]
 }`;
 
-      const response = await ai.models.generateContent({
+      const response = await withTimeout(ai.models.generateContent({
         model: 'gemini-3.5-flash',
         contents: prompt,
         config: {
@@ -66,19 +83,21 @@ router.post('/api/tafsir', async (req: Request, res: Response) => {
             required: ['surahId', 'surahName', 'verseRange', 'tafsir', 'coreConcept', 'spiritualReflection', 'linguisticSecrets']
           }
         }
-      });
+      }), TIMEOUT_MS);
 
       const textOutput = response.text || '';
       const tafsirObj = JSON.parse(textOutput.trim());
+      tafsirCache.set(cacheKey, tafsirObj);
       res.json(tafsirObj);
 
-    } catch (apiError: any) {
-      console.warn('Gemini API call failed or is unconfigured. Serving local exegesis database fallback:', apiError.message);
+    } catch (apiError: unknown) {
+      console.warn('Gemini API call failed or is unconfigured. Serving local exegesis database fallback:', apiError instanceof Error ? apiError.message : String(apiError));
       const fallback = getLocalTafsirFallback(surahId, surahName, verseRange);
       res.json(fallback);
     }
-  } catch (error: any) {
-    res.status(500).json({ error: 'عذراً، تَعذّر إنتاج التفسير في الوقت الراهن: ' + error.message });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'خطأ غير معروف';
+    res.status(500).json({ error: 'عذراً، تَعذّر إنتاج التفسير في الوقت الراهن: ' + message });
   }
 });
 

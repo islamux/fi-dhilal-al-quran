@@ -14,6 +14,9 @@ export function OverviewTab({ isDarkMode, loadingTafsir, currentTafsir, selected
   return (
     <motion.div
       key="overview-panel"
+      id="panel-overview"
+      role="tabpanel"
+      aria-labelledby="active-tab-overview"
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -15 }}

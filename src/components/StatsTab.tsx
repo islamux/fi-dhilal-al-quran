@@ -17,6 +17,9 @@ export function StatsTab({ isDarkMode, completedSurahs, bookmarks, readingHistor
   return (
     <motion.div
       key="stats-panel"
+      id="panel-stats"
+      role="tabpanel"
+      aria-labelledby="active-tab-stats"
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -15 }}
@@ -75,6 +78,7 @@ export function StatsTab({ isDarkMode, completedSurahs, bookmarks, readingHistor
           <h3 className="text-md font-bold font-serif">دفتر علامات التدبّر والمفضلة (﴿﴾)</h3>
           <button
             id="clear-all-bookmarks-btn"
+            aria-label="مسح جميع العلامات"
             onClick={() => { if(confirm('هل تود تصفير علامات القراءة والمفضلة؟')) clearAll(); }}
             className="text-xs text-brand-grey hover:text-red-500 font-mono tracking-wider transition-colors"
           >
@@ -104,9 +108,9 @@ export function StatsTab({ isDarkMode, completedSurahs, bookmarks, readingHistor
                   </div>
                   <button
                     id={`delete-bookmark-btn-${bookmark.id}`}
+                    aria-label={`حذف العلم ${surahMatch?.arName || ''}${bookmark.verseIndex !== undefined ? ` الآية ${bookmark.verseIndex}` : ''}`}
                     onClick={() => removeBookmark(bookmark.id)}
                     className="p-1 px-2.5 rounded-none bg-red-500/10 hover:bg-red-500 hover:text-white text-xs text-red-500 transition-all font-mono tracking-wider font-bold"
-                    title="حذف العلم"
                   >
                     REMOVE
                   </button>

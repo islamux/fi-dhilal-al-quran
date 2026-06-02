@@ -1,6 +1,7 @@
+import { memo } from 'react';
 import { Sparkles } from 'lucide-react';
 
-export function Footer() {
+export const Footer = memo(function Footer() {
   return (
     <footer className="text-center py-10 border-t border-gilded-gold/10 flex flex-col items-center justify-center space-y-3" id="reading-canvas-footer">
       <div className="flex items-center gap-2 text-xs text-gilded-gold font-mono font-bold tracking-widest uppercase justify-center">
@@ -15,4 +16,4 @@ export function Footer() {
       </div>
     </footer>
   );
-}
+});

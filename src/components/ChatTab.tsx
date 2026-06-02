@@ -23,6 +23,9 @@ export function ChatTab({
   return (
     <motion.div
       key="chat-panel"
+      id="panel-chat"
+      role="tabpanel"
+      aria-labelledby="active-tab-chat"
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -15 }}
@@ -44,6 +47,7 @@ export function ChatTab({
           </div>
           <button
             id="reset-chat-btn"
+            aria-label="بدء محاورة جديدة"
             onClick={() => resetChat(selectedSurah)}
             className="text-xs font-serif text-gilded-gold hover:underline transition-all opacity-80"
           >
@@ -97,6 +101,7 @@ export function ChatTab({
         <div className="flex gap-2 py-2 overflow-x-auto border-t border-[#2A2A2A] whitespace-nowrap shrink-0 max-w-full" id="chat-quick-suggestions">
           <button
             id="chat-suggest-btn-1"
+            aria-label="سؤال مقترح: التصوير الفني في السورة"
             onClick={() => setChatInput(`ما هي أبرز دلالات ومعاني التصوير الفني والجمالي في سورة ${selectedSurah.arName}؟`)}
             className={`text-[10px] px-2.5 py-1 border rounded-none transition-colors shrink-0 ${
               isDarkMode ? 'border-brand-dark-border text-brand-dark-mute bg-[#18182a]/50 hover:bg-[#20203a] hover:text-white font-serif' : 'border-brand-border text-brand-faded bg-white hover:bg-brand-stone hover:text-brand-rich font-serif'
@@ -106,6 +111,7 @@ export function ChatTab({
           </button>
           <button
             id="chat-suggest-btn-2"
+            aria-label="سؤال مقترح: المفهوم الحركي في السورة"
             onClick={() => setChatInput(`وضح المفهوم والمنهج الحركي لعقيدة المسلمين في ظلال سورة ${selectedSurah.arName}، وكيف يستجيب قلبي له؟`)}
             className={`text-[10px] px-2.5 py-1 border rounded-none transition-colors shrink-0 ${
               isDarkMode ? 'border-brand-dark-border text-brand-dark-mute bg-[#18182a]/50 hover:bg-[#20203a] hover:text-white font-serif' : 'border-brand-border text-brand-faded bg-white hover:bg-brand-stone hover:text-brand-rich font-serif'
@@ -115,6 +121,7 @@ export function ChatTab({
           </button>
           <button
             id="chat-suggest-btn-3"
+            aria-label="سؤال مقترح: قصص الأنبياء والتربية"
             onClick={() => setChatInput(`اشرح قصة الأنبياء والمغزى التربوي الشامل المطروح في كتاب "في ظلال القرآن" لهذه السورة المباركة.`)}
             className={`text-[10px] px-2.5 py-1 border rounded-none transition-colors shrink-0 ${
               isDarkMode ? 'border-brand-dark-border text-brand-dark-mute bg-[#18182a]/50 hover:bg-[#20203a] hover:text-white font-serif' : 'border-brand-border text-brand-faded bg-white hover:bg-brand-stone hover:text-brand-rich font-serif'
@@ -132,6 +139,7 @@ export function ChatTab({
             id="scholarly-chat-input-field"
             type="text"
             placeholder="اطرح سؤالاً فكرياً أو عقدياً حول الآيات وتأويلها..."
+            aria-label="سؤال للمفسر"
             dir="rtl"
             className={`flex-1 rounded-none border px-3 py-2 text-xs sm:text-sm font-sans focus:outline-none focus:border-gilded-gold ${
               isDarkMode ? 'bg-[#0E0E0E] border-[#2A2A2A] text-white' : 'bg-white border-brand-border text-brand-rich'
@@ -143,6 +151,7 @@ export function ChatTab({
           <button
             id="chat-send-submit"
             type="submit"
+            aria-label="إرسال السؤال"
             className="px-4 py-2 bg-gilded-gold hover:bg-gilded-hover text-white rounded-none transition-all flex items-center justify-center shrink-0"
             disabled={loadingChat || !chatInput.trim()}
           >

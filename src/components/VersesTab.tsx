@@ -77,7 +77,7 @@ export function VersesTab({
           {verseRangeValue === 'كاملة' ? (
             <div className="flex flex-wrap justify-center gap-y-4 gap-x-2 text-xl sm:text-2xl font-serif tracking-normal leading-[2.5]" style={{ direction: 'rtl' }}>
               <span className="text-gilded-gold leading-none font-mono text-xs shrink-0 self-center border border-gilded-gold/20 px-2 py-0.5 rounded-none bg-gilded-gold/5 font-bold">بداية السورة</span>
-              <span className={isDarkMode ? 'text-[#F2F2F2]' : 'text-neutral-950'}>﴿ يَا أَيُّهَا الْمُنفِّقُونَ وَالَّذينَ آمَنُوا مَعَ جبهةِ الحَقِّ وَبَرَاءَةِ المُتَّقِين... ﴾</span>
+              <span className={isDarkMode ? 'text-[#F2F2F2]' : 'text-neutral-950'}>﴿ نَصُّ الْآيَةِ الْكَرِيمَةِ — يُسْتَعْرَضُ هُنَا عِنْدَ اخْتِيَارِ الْآيَةِ ﴾</span>
               <span className="text-gilded-gold font-bold font-serif mx-1">﴿{toArabicNumerals(1)}﴾</span>
               <span className={isDarkMode ? 'text-[#F2F2F2]' : 'text-neutral-950'}>﴿ وَاسْتَعِينُوا بِالصَّبْرِ وَالصَّلَاةِ وَإِنَّهَا لَكَبِيرَةٌ إِلَّا عَلَى الْخَاشِعِينَ ﴾</span>
               <span className="text-gilded-gold font-bold font-serif mx-1">﴿{toArabicNumerals(2)}﴾</span>

@@ -1,4 +1,14 @@
-export const LOCAL_TAFSIR_CACHE: Record<number, any> = {
+interface TafsirEntry {
+  surahId: number;
+  surahName: string;
+  verseRange: string;
+  tafsir: string;
+  coreConcept: string;
+  spiritualReflection: string;
+  linguisticSecrets: string[];
+}
+
+export const LOCAL_TAFSIR_CACHE: Record<number, TafsirEntry> = {
   1: {
     surahId: 1,
     surahName: "الفاتحة",

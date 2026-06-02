@@ -2,6 +2,7 @@ import { Router, type Request, type Response } from 'express';
 import { Type } from '@google/genai';
 import { getGeminiClient } from '../gemini';
 import { getLocalTafsirFallback } from '../localTafsir';
+import { sendError } from '../response';
 
 const router = Router();
 
@@ -9,7 +10,7 @@ router.post('/api/tafsir', async (req: Request, res: Response) => {
   const { surahId, surahName, verseRange = 'كاملة' } = req.body;
 
   if (!surahId || !surahName) {
-    res.status(400).json({ error: 'يرجى تقديم رقم السورة واسمها لمطابقة المخطط.' });
+    sendError(res, 400, 'يرجى تقديم رقم السورة واسمها لمطابقة المخطط.');
     return;
   }
 
@@ -72,13 +73,15 @@ router.post('/api/tafsir', async (req: Request, res: Response) => {
       const tafsirObj = JSON.parse(textOutput.trim());
       res.json(tafsirObj);
 
-    } catch (apiError: any) {
-      console.warn('Gemini API call failed or is unconfigured. Serving local exegesis database fallback:', apiError.message);
+    } catch (apiError: unknown) {
+      const msg = apiError instanceof Error ? apiError.message : String(apiError);
+      console.warn('Gemini API call failed or is unconfigured. Serving local exegesis database fallback:', msg);
       const fallback = getLocalTafsirFallback(surahId, surahName, verseRange);
       res.json(fallback);
     }
-  } catch (error: any) {
-    res.status(500).json({ error: 'عذراً، تَعذّر إنتاج التفسير في الوقت الراهن: ' + error.message });
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : String(error);
+    sendError(res, 500, 'عذراً، تَعذّر إنتاج التفسير في الوقت الراهن: ' + msg);
   }
 });
 

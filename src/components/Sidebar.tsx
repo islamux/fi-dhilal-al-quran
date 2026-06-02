@@ -213,7 +213,7 @@ export function Sidebar({
           </span>
         </div>
         <div className={`w-full h-1.5 rounded-full overflow-hidden ${isDarkMode ? 'bg-brand-dark-border' : 'bg-brand-border'}`}>
-          <div className="bg-gilded-gold h-full" style={{ width: `${(completedSurahs.length / SURAHS.length) * 105}%` }} />
+          <div className="bg-gilded-gold h-full" style={{ width: `${(completedSurahs.length / SURAHS.length) * 100}%` }} />
         </div>
       </div>
     </aside>

@@ -13,10 +13,10 @@ import { SurahBanner } from './components/SurahBanner';
 import { TabBar } from './components/TabBar';
 import { Footer } from './components/Footer';
 
-const OverviewTab = lazy(() => import('./components/OverviewTab'));
-const VersesTab = lazy(() => import('./components/VersesTab'));
-const ChatTab = lazy(() => import('./components/ChatTab'));
-const StatsTab = lazy(() => import('./components/StatsTab'));
+const OverviewTab = lazy(() => import('./components/OverviewTab').then(m => ({ default: m.OverviewTab })));
+const VersesTab = lazy(() => import('./components/VersesTab').then(m => ({ default: m.VersesTab })));
+const ChatTab = lazy(() => import('./components/ChatTab').then(m => ({ default: m.ChatTab })));
+const StatsTab = lazy(() => import('./components/StatsTab').then(m => ({ default: m.StatsTab })));
 
 export default function App() {
   const [selectedSurah, setSelectedSurah] = useState<Surah>(SURAHS[0]);

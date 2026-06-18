@@ -27,20 +27,8 @@ export interface HistoryItem {
   viewedAt: string;
 }
 
-export interface TafsirResponse {
-  surahId: number;
-  surahName: string;
-  verseRange: string;
-  tafsir: string;
-  coreConcept: string;
-  spiritualReflection: string;
-  linguisticSecrets: string[];
-}
-
-export interface SearchResult {
-  surahId: number;
-  surahName: string;
+export interface TafsirSection {
+  startVerse: number;
+  endVerse: number;
   text: string;
-  verseNumber?: number;
-  relevance: number;
 }

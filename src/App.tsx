@@ -6,7 +6,7 @@ import { useTheme } from './hooks/useTheme';
 import { useBookmarks } from './hooks/useBookmarks';
 import { useProgress } from './hooks/useProgress';
 import { useTafsir } from './hooks/useTafsir';
-import { useChat } from './hooks/useChat';
+import { useSearch } from './hooks/useChat';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
 import { SurahBanner } from './components/SurahBanner';
@@ -30,8 +30,8 @@ export default function App() {
   const { isDarkMode, toggleTheme } = useTheme();
   const { bookmarks, toggleBookmark, isBookmarked, removeBookmark, clearAll } = useBookmarks();
   const { readingHistory, completedSurahs, addHistoryItem, toggleComplete } = useProgress();
-  const { loadingTafsir, currentTafsir, verseRangeValue, setVerseRangeValue, fetchTafsir } = useTafsir();
-  const { chatInput, setChatInput, chatMessages, loadingChat, chatBottomRef, handleSendMessage, resetChat } = useChat();
+  const { tafsirText, verseRangeValue, setVerseRangeValue, fetchTafsir, hasTafsir } = useTafsir();
+  const { searchInput, setSearchInput, results, searching, bottomRef, handleSearch, clearResults } = useSearch();
 
   useEffect(() => {
     fetchTafsir(selectedSurah, 'كاملة');
@@ -39,15 +39,13 @@ export default function App() {
     setVerseRangeValue('كاملة');
   }, [selectedSurah]);
 
-  useEffect(() => {
-    resetChat(selectedSurah);
-  }, [selectedSurah]);
-
-  useEffect(() => {
-    if (chatBottomRef.current) {
-      chatBottomRef.current.scrollIntoView({ behavior: 'smooth' });
+  const handleNavigateToSurah = (surahId: number) => {
+    const surah = SURAHS.find(s => s.id === surahId);
+    if (surah) {
+      setSelectedSurah(surah);
+      setActiveTab('verses');
     }
-  }, [chatMessages]);
+  };
 
   return (
     <div className={`flex h-screen w-full overflow-hidden ${
@@ -122,35 +120,35 @@ export default function App() {
                 {activeTab === 'overview' && (
                   <OverviewTab
                     isDarkMode={isDarkMode}
-                    loadingTafsir={loadingTafsir}
-                    currentTafsir={currentTafsir}
+                    tafsirText={tafsirText}
                     selectedSurah={selectedSurah}
+                    hasTafsir={hasTafsir(selectedSurah.id)}
                   />
                 )}
                 {activeTab === 'verses' && (
                   <VersesTab
                     isDarkMode={isDarkMode}
-                    loadingTafsir={loadingTafsir}
-                    currentTafsir={currentTafsir}
+                    tafsirText={tafsirText}
                     verseRangeValue={verseRangeValue}
                     setVerseRangeValue={setVerseRangeValue}
                     selectedSurah={selectedSurah}
                     fetchTafsir={fetchTafsir}
                     toggleBookmark={toggleBookmark}
                     isBookmarked={isBookmarked}
+                    hasTafsir={hasTafsir(selectedSurah.id)}
                   />
                 )}
                 {activeTab === 'chat' && (
                   <ChatTab
                     isDarkMode={isDarkMode}
-                    chatInput={chatInput}
-                    setChatInput={setChatInput}
-                    chatMessages={chatMessages}
-                    loadingChat={loadingChat}
-                    chatBottomRef={chatBottomRef}
-                    handleSendMessage={handleSendMessage}
-                    selectedSurah={selectedSurah}
-                    resetChat={resetChat}
+                    searchInput={searchInput}
+                    setSearchInput={setSearchInput}
+                    results={results}
+                    searching={searching}
+                    bottomRef={bottomRef}
+                    handleSearch={handleSearch}
+                    clearResults={clearResults}
+                    onNavigateToSurah={handleNavigateToSurah}
                   />
                 )}
                 {activeTab === 'stats' && (

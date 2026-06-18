@@ -1,21 +1,13 @@
 import express, { type Request, type Response } from 'express';
 import path from 'path';
-import dotenv from 'dotenv';
 import { createServer as createViteServer } from 'vite';
 import healthRouter from './server/routes/health';
-import tafsirRouter from './server/routes/tafsir';
-import chatRouter from './server/routes/chat';
-
-dotenv.config();
 
 const app = express();
-app.use(express.json());
 
 const PORT = 3000;
 
 app.use(healthRouter);
-app.use(tafsirRouter);
-app.use(chatRouter);
 
 async function startServer() {
   const isProd = process.env.NODE_ENV === 'production';

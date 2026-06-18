@@ -1,51 +1,82 @@
-import { useState, useRef, type FormEvent } from 'react';
-import type { Surah } from '../types';
-import { sendChatMessage } from '../api/chat';
-import { toArabicNumerals } from '../utils';
-import type { ChatMessage } from '../api/chat';
+import { useState, useRef } from 'react';
+import { TAFSIR_DATA } from '../data/tafsir';
+import { SURAHS } from '../data/surahs';
 
-const WELCOME_MSG = 'مرحباً بك في المُدارس الذكي لتفسير "في ظلال القرآن". يمكنك سؤالي عن المحاور اللاهوتية والحركية في السورة، أو عن معاني التصوير الجمالي والفني في آياتها المباركة.';
+export interface SearchMatch {
+  surahId: number;
+  surahName: string;
+  startVerse: number;
+  endVerse: number;
+  excerpt: string;
+}
 
-export function useChat() {
-  const [chatInput, setChatInput] = useState('');
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
-    { role: 'assistant', content: WELCOME_MSG }
-  ]);
-  const [loadingChat, setLoadingChat] = useState(false);
-  const chatBottomRef = useRef<HTMLDivElement>(null);
+const surahNameMap = new Map<number, string>();
+SURAHS.forEach(s => surahNameMap.set(s.id, s.arName));
 
-  const handleSendMessage = async (e: FormEvent, selectedSurah: Surah) => {
-    e.preventDefault();
-    if (!chatInput.trim()) return;
+export function useSearch() {
+  const [searchInput, setSearchInput] = useState('');
+  const [results, setResults] = useState<SearchMatch[]>([]);
+  const [searching, setSearching] = useState(false);
+  const bottomRef = useRef<HTMLDivElement>(null);
 
-    const userMsg = chatInput.trim();
-    setChatInput('');
-    const updatedMessages = [...chatMessages, { role: 'user' as const, content: userMsg }];
-    setChatMessages(updatedMessages);
-    setLoadingChat(true);
+  const handleSearch = (query: string) => {
+    if (!query.trim()) return;
+    setSearching(true);
 
-    try {
-      const data = await sendChatMessage(updatedMessages, selectedSurah);
-      setChatMessages(prev => [...prev, { role: 'assistant', content: data.reply }]);
-    } catch (err) {
-      console.error(err);
-      setChatMessages(prev => [...prev, {
-        role: 'assistant',
-        content: 'عذراً يا رعاك الله، تعذّر الاتصال بالمدرس الذكي للظلال حالياً. لكن تذكّر دائماً أن تدبر السور متيسر ومنهج سيد قطب يركز على التصوير الفني وحيوية النص.'
-      }]);
-    } finally {
-      setLoadingChat(false);
-    }
-  };
+    const words = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    const matches: { match: SearchMatch; score: number }[] = [];
 
-  const resetChat = (surah: Surah) => {
-    setChatMessages([
-      {
-        role: 'assistant',
-        content: `لقد اخترت الآن سورة ${surah.arName} (${surah.type}, عدد آياتها ${toArabicNumerals(surah.versesCount)} آية). يسرني المدارسة معك حول ظلالها الإعجازية وعمق تشريعاتها وحياكة آياتها الفنية.`
+    for (const [surahIdStr, sections] of Object.entries(TAFSIR_DATA)) {
+      const surahId = parseInt(surahIdStr);
+      const surahName = surahNameMap.get(surahId) || `السورة ${surahId}`;
+
+      for (const section of sections) {
+        const textLower = section.text.toLowerCase();
+        let score = 0;
+
+        for (const word of words) {
+          if (textLower.includes(word)) score++;
+        }
+
+        if (score > 0) {
+          const firstIdx = section.text.toLowerCase().indexOf(words[0]);
+          const start = Math.max(0, firstIdx - 80);
+          const end = Math.min(section.text.length, firstIdx + 200);
+          const excerpt = (start > 0 ? '...' : '') +
+            section.text.slice(start, end) +
+            (end < section.text.length ? '...' : '');
+
+          matches.push({
+            match: {
+              surahId,
+              surahName,
+              startVerse: section.startVerse,
+              endVerse: section.endVerse,
+              excerpt: excerpt.replace(/\n+/g, ' '),
+            },
+            score,
+          });
+        }
       }
-    ]);
+    }
+
+    matches.sort((a, b) => b.score - a.score);
+    setResults(matches.slice(0, 50).map(m => m.match));
+    setSearching(false);
   };
 
-  return { chatInput, setChatInput, chatMessages, loadingChat, chatBottomRef, handleSendMessage, resetChat };
+  const clearResults = () => {
+    setResults([]);
+    setSearchInput('');
+  };
+
+  return {
+    searchInput,
+    setSearchInput,
+    results,
+    searching,
+    bottomRef,
+    handleSearch,
+    clearResults,
+  };
 }

@@ -1,25 +1,30 @@
-import { motion } from 'motion/react';
-import { Sparkles, Send } from 'lucide-react';
 import { type FormEvent, type RefObject } from 'react';
-import type { Surah } from '../types';
-import type { ChatMessage } from '../api/chat';
+import { motion } from 'motion/react';
+import { Search, Send, Bookmark } from 'lucide-react';
+import { toArabicNumerals } from '../utils';
+import type { SearchMatch } from '../hooks/useChat';
 
-interface ChatTabProps {
+interface SearchTabProps {
   isDarkMode: boolean;
-  chatInput: string;
-  setChatInput: (v: string) => void;
-  chatMessages: ChatMessage[];
-  loadingChat: boolean;
-  chatBottomRef: RefObject<HTMLDivElement | null>;
-  handleSendMessage: (e: FormEvent, selectedSurah: Surah) => void;
-  selectedSurah: Surah;
-  resetChat: (surah: Surah) => void;
+  searchInput: string;
+  setSearchInput: (v: string) => void;
+  results: SearchMatch[];
+  searching: boolean;
+  bottomRef: RefObject<HTMLDivElement | null>;
+  handleSearch: (query: string) => void;
+  clearResults: () => void;
+  onNavigateToSurah: (surahId: number) => void;
 }
 
 export function ChatTab({
-  isDarkMode, chatInput, setChatInput, chatMessages, loadingChat,
-  chatBottomRef, handleSendMessage, selectedSurah, resetChat
-}: ChatTabProps) {
+  isDarkMode, searchInput, setSearchInput, results, searching,
+  bottomRef, handleSearch, clearResults, onNavigateToSurah
+}: SearchTabProps) {
+  const onSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    handleSearch(searchInput);
+  };
+
   return (
     <motion.div
       key="chat-panel"
@@ -37,123 +42,122 @@ export function ChatTab({
       }`} id="scholarly-chat-widget">
         <div className="flex items-center justify-between border-b pb-4 border-gilded-gold/10 shrink-0">
           <div className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-gilded-gold animate-bounce" />
+            <Search className="w-5 h-5 text-gilded-gold" />
             <div className="text-right">
-              <h3 className="font-bold text-sm tracking-tight font-serif">مدارس ومفسّر تفسير &quot;في ظلال القرآن&quot;</h3>
+              <h3 className="font-bold text-sm tracking-tight font-serif">البحث في نصوص الظلال</h3>
               <p className={`text-[10px] ${isDarkMode ? 'text-brand-dark-mute' : 'text-brand-faded'}`}>
-                اسأله عن محاور سورة {selectedSurah.arName} ومفهوم التصوير والجهاد الروحي فيها
+                ابحث عن أي موضوع أو كلمة في تفسير سيد قطب
               </p>
             </div>
           </div>
-          <button
-            id="reset-chat-btn"
-            aria-label="بدء محاورة جديدة"
-            onClick={() => resetChat(selectedSurah)}
-            className="text-xs font-serif text-gilded-gold hover:underline transition-all opacity-80"
-          >
-            بدء محاورة جديدة
-          </button>
-        </div>
-        <div className="flex-1 overflow-y-auto py-4 space-y-4" id="chat-messages-container">
-          {chatMessages.map((msg, i) => (
-            <div
-               id={`chat-msg-row-${i}`}
-              key={i}
-              className={`flex gap-3 max-w-[85%] ${
-                msg.role === 'user' ? 'mr-auto items-end flex-row-reverse' : 'ml-auto'
-              }`}
+          {results.length > 0 && (
+            <button
+              onClick={clearResults}
+              className="text-xs font-serif text-gilded-gold hover:underline transition-all opacity-80"
             >
-              <div className={`w-7 h-7 rounded-none shrink-0 flex items-center justify-center text-[10px] font-bold font-mono ${
-                msg.role === 'user'
-                  ? 'bg-gilded-gold/15 text-gilded-gold border border-gilded-gold/30'
-                  : 'bg-emerald-500/15 text-emerald-500 border border-emerald-500/30'
-              }`}>
-                {msg.role === 'user' ? 'USER' : 'QUTB'}
-              </div>
-              <div className={`p-4 rounded-none text-xs sm:text-sm leading-relaxed text-right ${
-                msg.role === 'user'
-                  ? 'bg-gilded-gold text-white font-serif'
-                  : isDarkMode
-                    ? 'bg-[#0E0E0E] text-[#F2F2F2] border border-[#2A2A2A] font-serif'
-                    : 'bg-brand-stone text-brand-rich border border-brand-border font-serif'
-              }`} style={{ whiteSpace: 'pre-line' }}>
-                {msg.content}
-              </div>
-            </div>
-          ))}
-          {loadingChat && (
-            <div className="flex gap-3 max-w-[80%] items-start ml-auto" id="chat-loading-row">
-              <div className="w-7 h-7 rounded-none shrink-0 flex items-center justify-center text-[10px] font-bold font-mono bg-emerald-500/10 text-emerald-500 border animate-pulse">
-                QUTB
-              </div>
-              <div className={`p-4 rounded-none text-xs leading-relaxed ${isDarkMode ? 'bg-[#0E0E0E]' : 'bg-brand-stone'}`}>
-                <div className="flex gap-1.5 items-center justify-end">
-                  <span className="w-1.5 h-1.5 rounded-none bg-emerald-500 animate-bounce" style={{ animationDelay: '0ms' }} />
-                  <span className="w-1.5 h-1.5 rounded-none bg-emerald-500 animate-bounce" style={{ animationDelay: '150ms' }} />
-                  <span className="w-1.5 h-1.5 rounded-none bg-emerald-500 animate-bounce" style={{ animationDelay: '300ms' }} />
-                  <span className="text-[10px] text-emerald-500/85 mr-1 font-serif">يستخلص المدارس الجواب...</span>
+              مسح النتائج
+            </button>
+          )}
+        </div>
+
+        <div className="flex-1 overflow-y-auto py-4 space-y-4" id="chat-messages-container">
+          {results.length > 0 ? (
+            results.map((result, i) => (
+              <button
+                key={i}
+                onClick={() => onNavigateToSurah(result.surahId)}
+                className={`w-full text-right p-4 rounded-none border transition-all cursor-pointer ${
+                  isDarkMode
+                    ? 'bg-[#0E0E0E] border-[#2A2A2A] hover:border-gilded-gold/40 text-[#F2F2F2]'
+                    : 'bg-brand-stone border-brand-border hover:border-gilded-gold/40 text-brand-rich'
+                }`}
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  <Bookmark className="w-3 h-3 text-gilded-gold" />
+                  <span className="text-gilded-gold text-xs font-bold font-serif">
+                    سورة {result.surahName}
+                  </span>
+                  <span className={`text-[10px] px-1.5 py-0.5 ${isDarkMode ? 'bg-[#1e1e1e] text-brand-dark-mute' : 'bg-white text-brand-faded'} border font-mono`}>
+                    الآيات {toArabicNumerals(result.startVerse)}-{toArabicNumerals(result.endVerse)}
+                  </span>
                 </div>
+                <p className={`text-xs leading-relaxed font-serif ${isDarkMode ? 'text-brand-dark-mute' : 'text-brand-faded'} line-clamp-3`}>
+                  {result.excerpt}
+                </p>
+              </button>
+            ))
+          ) : searching ? (
+            <div className="flex flex-col items-center justify-center py-16 space-y-4">
+              <div className="w-8 h-8 border-2 border-gilded-gold/20 border-t-gilded-gold rounded-none animate-spin" />
+              <span className="text-xs text-gilded-gold animate-pulse">جاري البحث في النصوص...</span>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-16 space-y-4">
+              <Search className="w-10 h-10 text-gilded-gold/30" />
+              <div className="text-center">
+                <p className={`text-sm font-serif mb-1 ${isDarkMode ? 'text-brand-dark-mute' : 'text-brand-faded'}`}>
+                  اكتب كلمة أو موضوعاً للبحث في نصوص الظلال
+                </p>
+                <p className={`text-xs ${isDarkMode ? 'text-brand-dark-mute/60' : 'text-brand-faded/60'}`}>
+                  النتائج تشمل جميع السور المتوفرة
+                </p>
               </div>
             </div>
           )}
-          <div ref={chatBottomRef} />
+          <div ref={bottomRef} />
         </div>
+
         <div className="flex gap-2 py-2 overflow-x-auto border-t border-[#2A2A2A] whitespace-nowrap shrink-0 max-w-full" id="chat-quick-suggestions">
           <button
-            id="chat-suggest-btn-1"
-            aria-label="سؤال مقترح: التصوير الفني في السورة"
-            onClick={() => setChatInput(`ما هي أبرز دلالات ومعاني التصوير الفني والجمالي في سورة ${selectedSurah.arName}؟`)}
+            onClick={() => { setSearchInput('التصوير الفني'); handleSearch('التصوير الفني'); }}
             className={`text-[10px] px-2.5 py-1 border rounded-none transition-colors shrink-0 ${
-              isDarkMode ? 'border-brand-dark-border text-brand-dark-mute bg-[#18182a]/50 hover:bg-[#20203a] hover:text-white font-serif' : 'border-brand-border text-brand-faded bg-white hover:bg-brand-stone hover:text-brand-rich font-serif'
+              isDarkMode ? 'border-brand-dark-border text-brand-dark-mute hover:text-white font-serif' : 'border-brand-border text-brand-faded hover:text-brand-rich font-serif'
             }`}
           >
-            ما هو التصوير الفني بالسورة؟
+            التصوير الفني
           </button>
           <button
-            id="chat-suggest-btn-2"
-            aria-label="سؤال مقترح: المفهوم الحركي في السورة"
-            onClick={() => setChatInput(`وضح المفهوم والمنهج الحركي لعقيدة المسلمين في ظلال سورة ${selectedSurah.arName}، وكيف يستجيب قلبي له؟`)}
+            onClick={() => { setSearchInput('الجهاد'); handleSearch('الجهاد'); }}
             className={`text-[10px] px-2.5 py-1 border rounded-none transition-colors shrink-0 ${
-              isDarkMode ? 'border-brand-dark-border text-brand-dark-mute bg-[#18182a]/50 hover:bg-[#20203a] hover:text-white font-serif' : 'border-brand-border text-brand-faded bg-white hover:bg-brand-stone hover:text-brand-rich font-serif'
+              isDarkMode ? 'border-brand-dark-border text-brand-dark-mute hover:text-white font-serif' : 'border-brand-border text-brand-faded hover:text-brand-rich font-serif'
             }`}
           >
-            ما هو المفهوم الحركي بالسورة؟
+            الجهاد في سبيل الله
           </button>
           <button
-            id="chat-suggest-btn-3"
-            aria-label="سؤال مقترح: قصص الأنبياء والتربية"
-            onClick={() => setChatInput(`اشرح قصة الأنبياء والمغزى التربوي الشامل المطروح في كتاب "في ظلال القرآن" لهذه السورة المباركة.`)}
+            onClick={() => { setSearchInput('التوحيد'); handleSearch('التوحيد'); }}
             className={`text-[10px] px-2.5 py-1 border rounded-none transition-colors shrink-0 ${
-              isDarkMode ? 'border-brand-dark-border text-brand-dark-mute bg-[#18182a]/50 hover:bg-[#20203a] hover:text-white font-serif' : 'border-brand-border text-brand-faded bg-white hover:bg-brand-stone hover:text-brand-rich font-serif'
+              isDarkMode ? 'border-brand-dark-border text-brand-dark-mute hover:text-white font-serif' : 'border-brand-border text-brand-faded hover:text-brand-rich font-serif'
             }`}
           >
-            قصص الأنبياء والتربية بالظلال
+            التوحيد والعبودية
           </button>
         </div>
+
         <form
           id="scholarly-chat-input-form"
-          onSubmit={(e) => handleSendMessage(e, selectedSurah)}
+          onSubmit={onSubmit}
           className={`flex gap-2 pt-3 border-t shrink-0 ${isDarkMode ? 'border-brand-dark-border' : 'border-brand-border'}`}
         >
           <input
             id="scholarly-chat-input-field"
             type="text"
-            placeholder="اطرح سؤالاً فكرياً أو عقدياً حول الآيات وتأويلها..."
-            aria-label="سؤال للمفسر"
+            placeholder="ابحث عن كلمة أو موضوع..."
+            aria-label="بحث في نصوص الظلال"
             dir="rtl"
             className={`flex-1 rounded-none border px-3 py-2 text-xs sm:text-sm font-sans focus:outline-none focus:border-gilded-gold ${
               isDarkMode ? 'bg-[#0E0E0E] border-[#2A2A2A] text-white' : 'bg-white border-brand-border text-brand-rich'
             }`}
-            value={chatInput}
-            onChange={(e) => setChatInput(e.target.value)}
-            disabled={loadingChat}
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            disabled={searching}
           />
           <button
             id="chat-send-submit"
             type="submit"
-            aria-label="إرسال السؤال"
+            aria-label="بحث"
             className="px-4 py-2 bg-gilded-gold hover:bg-gilded-hover text-white rounded-none transition-all flex items-center justify-center shrink-0"
-            disabled={loadingChat || !chatInput.trim()}
+            disabled={searching || !searchInput.trim()}
           >
             <Send className="w-4 h-4 rtl-flip" />
           </button>

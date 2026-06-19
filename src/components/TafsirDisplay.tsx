@@ -1,6 +1,7 @@
 import { useTheme } from '../hooks/useTheme';
 import { toArabicNumerals } from '../utils';
 import { formatTafsirParagraphs } from '../utils/tafsir-format';
+import { TafsirContent } from './TafsirContent';
 
 interface TafsirDisplayProps {
   tafsirText: string;
@@ -21,9 +22,10 @@ export function TafsirDisplay({ tafsirText, verseRangeValue }: TafsirDisplayProp
         </span>
       </div>
       <div className="prose prose-sm sm:prose-base max-w-none dark:prose-invert space-y-3 font-serif text-justify text-base sm:text-lg">
-        {formatTafsirParagraphs(tafsirText).map((point, i) => (
-          <p key={i} className={isDarkMode ? 'text-[#d6d2ca]' : 'text-brand-rich'}>{point}</p>
-        ))}
+        <TafsirContent
+          paragraphs={formatTafsirParagraphs(tafsirText)}
+          isDarkMode={isDarkMode}
+        />
       </div>
     </div>
   );

@@ -1,10 +1,9 @@
 import { Menu, Sun, Moon, Bookmark as BookmarkIcon, CircleCheck } from 'lucide-react';
+import { useTheme } from '../hooks/useTheme';
 import { toArabicNumerals } from '../utils';
 import type { Surah } from '../types';
 
 interface HeaderProps {
-  isDarkMode: boolean;
-  toggleTheme: () => void;
   selectedSurah: Surah;
   setMobileSidebarOpen: (v: boolean) => void;
   toggleBookmark: (surahId: number) => void;
@@ -14,9 +13,10 @@ interface HeaderProps {
 }
 
 export function Header({
-  isDarkMode, toggleTheme, selectedSurah, setMobileSidebarOpen,
+  selectedSurah, setMobileSidebarOpen,
   toggleBookmark, isBookmarked, toggleComplete, completedSurahs
 }: HeaderProps) {
+  const { isDarkMode, toggleTheme } = useTheme();
   return (
     <header className={`px-4 sm:px-6 py-4 border-b flex items-center justify-between z-30 transition-all ${
       isDarkMode ? 'bg-[#0E0E0E]/80 border-brand-dark-border backdrop-blur-md' : 'bg-brand-parchment/80 border-brand-border backdrop-blur-md'

@@ -1,11 +1,10 @@
 import { motion } from 'motion/react';
-import { CircleCheck, Bookmark as BookmarkIcon, Compass } from 'lucide-react';
+import { BookmarkCheck, BookOpen, Trash2, Sparkles, Clock, CheckCircle } from 'lucide-react';
+import { useTheme } from '../hooks/useTheme';
 import { toArabicNumerals } from '../utils';
-import { SURAHS } from '../data/surahs';
 import type { Bookmark, HistoryItem } from '../types';
 
 interface StatsTabProps {
-  isDarkMode: boolean;
   completedSurahs: number[];
   bookmarks: Bookmark[];
   readingHistory: HistoryItem[];
@@ -13,150 +12,126 @@ interface StatsTabProps {
   removeBookmark: (id: string) => void;
 }
 
-export function StatsTab({ isDarkMode, completedSurahs, bookmarks, readingHistory, clearAll, removeBookmark }: StatsTabProps) {
+export function StatsTab({ completedSurahs, bookmarks, readingHistory, clearAll, removeBookmark }: StatsTabProps) {
+  const { isDarkMode } = useTheme();
   return (
     <motion.div
-      key="stats-panel"
-      id="panel-stats"
-      role="tabpanel"
-      aria-labelledby="active-tab-stats"
-      initial={{ opacity: 0, y: 15 }}
+      key="stats"
+      initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -15 }}
+      exit={{ opacity: 0, y: -12 }}
       transition={{ duration: 0.2 }}
       className="space-y-6"
     >
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4" id="stats-bento-grid">
-        <div className={`p-5 rounded-none border text-right space-y-2 relative overflow-hidden ${
-          isDarkMode ? 'bg-[#152e25]/20 border-emerald-500/20' : 'bg-[#eefcf5] border-emerald-500/20'
-        }`} id="bento-completed">
-          <div className="absolute left-3 top-3 text-emerald-500 hover:scale-110 transition-transform">
-            <CircleCheck className="w-8 h-8 opacity-40" />
-          </div>
-          <h4 className="text-xs text-[#22c55e] font-serif font-bold uppercase tracking-widest leading-none">سور قُرئت وتُدبرت</h4>
-          <div className="text-3xl font-extrabold text-emerald-500 font-mono">
-            {toArabicNumerals(completedSurahs.length)}
-          </div>
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-bold font-serif tracking-tight text-brand-rich dark:text-brand-dark-active">
+          سجل المُدارسة
+        </h3>
+        <button
+          id="clear-all-stats-btn"
+          onClick={clearAll}
+          className="flex items-center gap-1.5 text-xs text-brand-grey hover:text-red-500 transition-colors px-3 py-1.5 border border-brand-border dark:border-brand-dark-border"
+          title="مسح جميع السجلات"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+          مسح الكل
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className={`border p-5 flex flex-col gap-2 ${isDarkMode ? 'bg-[#152e25]/20 border-emerald-500/20' : 'bg-[#eefcf5] border-emerald-500/20'}`}>
+          <CheckCircle className="w-5 h-5 text-emerald-500" />
+          <span className="text-2xl font-bold font-mono text-emerald-500">{toArabicNumerals(completedSurahs.length)}</span>
           <p className={`text-[10px] ${isDarkMode ? 'text-brand-dark-mute' : 'text-brand-faded'} leading-tight`}>
-            تم تأكيد المدارسة اللغوية والحركية لها كاملة
+            سورة مُنجَزة (مقروءة ومُدارسة بالكامل)
           </p>
         </div>
-        <div className={`p-5 rounded-none border text-right space-y-2 relative overflow-hidden ${
-          isDarkMode ? 'bg-[#4a3915]/10 border-gilded-gold/25' : 'bg-[#fdf9ef] border-gilded-gold/20'
-        }`} id="bento-bookmarked">
-          <div className="absolute left-3 top-3 text-gilded-gold hover:scale-110 transition-transform">
-            <BookmarkIcon className="w-8 h-8 opacity-40 fill-gilded-gold text-gilded-gold" />
-          </div>
-          <h4 className="text-xs text-gilded-gold font-serif font-bold uppercase tracking-widest leading-none">علامات مفضلة</h4>
-          <div className="text-3xl font-extrabold text-gilded-gold font-mono">
-            {toArabicNumerals(bookmarks.length)}
-          </div>
+        <div className={`border p-5 flex flex-col gap-2 ${isDarkMode ? 'bg-[#4a3915]/10 border-gilded-gold/25' : 'bg-[#fdf9ef] border-gilded-gold/20'}`}>
+          <BookmarkCheck className="w-5 h-5 text-gilded-gold" />
+          <span className="text-2xl font-bold font-mono text-gilded-gold">{toArabicNumerals(bookmarks.length)}</span>
           <p className={`text-[10px] ${isDarkMode ? 'text-brand-dark-mute' : 'text-brand-faded'} leading-tight`}>
-            آيات أو مواضيع معلقة بالقلب قيد التفكر المستمر
+            علامة مرجعية محفوظة للعودة والتدبّر
           </p>
         </div>
-        <div className={`p-5 rounded-none border text-right space-y-2 relative overflow-hidden ${
-          isDarkMode ? 'bg-[#151515] border-brand-dark-border' : 'bg-white border-brand-border'
-        }`} id="bento-history">
-          <div className="absolute left-3 top-3 text-gilded-gold hover:scale-110 transition-transform opacity-30">
-            <Compass className="w-8 h-8" />
-          </div>
-          <h4 className="text-xs text-brand-grey font-serif font-bold uppercase tracking-widest leading-none">مُطالاعات نشطة</h4>
-          <div className="text-3xl font-extrabold text-gilded-gold font-mono">
-            {toArabicNumerals(readingHistory.length)}
-          </div>
+        <div className={`border p-5 flex flex-col gap-2 ${isDarkMode ? 'bg-[#151515] border-brand-dark-border' : 'bg-white border-brand-border'}`}>
+          <BookOpen className="w-5 h-5 text-brand-grey" />
+          <span className="text-2xl font-bold font-mono text-brand-grey">{toArabicNumerals(readingHistory.length)}</span>
           <p className={`text-[10px] ${isDarkMode ? 'text-brand-dark-mute' : 'text-brand-faded'} leading-tight`}>
-            سجل السور والمطالعات الأخيرة التي تفاعلت معها اليوم
+            سورة في سجل المطالعة
           </p>
         </div>
       </div>
 
-      <div className={`p-6 rounded-none border space-y-4 ${
-        isDarkMode ? 'bg-[#151515] border-brand-dark-border' : 'bg-white border-brand-border shadow-sm'
-      }`} id="saved-bookmarks-section">
-        <div className="border-b pb-3 border-gilded-gold/15 flex justify-between items-center">
-          <h3 className="text-md font-bold font-serif">دفتر علامات التدبّر والمفضلة (﴿﴾)</h3>
-          <button
-            id="clear-all-bookmarks-btn"
-            aria-label="مسح جميع العلامات"
-            onClick={() => { if(confirm('هل تود تصفير علامات القراءة والمفضلة؟')) clearAll(); }}
-            className="text-xs text-brand-grey hover:text-red-500 font-mono tracking-wider transition-colors"
-          >
-            CLEAR ALL
-          </button>
-        </div>
-        {bookmarks.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3" id="bookmarks-inner-grid">
-            {bookmarks.map((bookmark) => {
-              const surahMatch = SURAHS.find(s => s.id === bookmark.surahId);
-              return (
-                <div
-                  id={`bookmark-row-${bookmark.id}`}
-                  key={bookmark.id}
-                  className={`p-4 rounded-none border flex items-center justify-between ${
-                    isDarkMode ? 'bg-brand-dark-bg/60 border-brand-dark-border/40 hover:border-gilded-gold/40' : 'bg-[#FAF9F6] border-brand-border/60 hover:border-gilded-gold/40'
-                  }`}
-                >
-                  <div className="space-y-1 text-right">
-                    <div className="font-bold text-sm text-gilded-gold font-serif">
-                      سورة {surahMatch?.arName || 'غير معروف'}
-                    </div>
+      {bookmarks.length > 0 && (
+        <div className={`border ${isDarkMode ? 'bg-[#151515] border-brand-dark-border' : 'bg-white border-brand-border'}`}>
+          <div className="flex items-center gap-2 px-5 py-4 border-b border-brand-border dark:border-brand-dark-border">
+            <Sparkles className="w-4 h-4 text-gilded-gold" />
+            <h4 className="text-sm font-bold font-sans tracking-wider text-gilded-gold uppercase">Bookmarks</h4>
+          </div>
+          <div className="divide-y divide-brand-border dark:divide-brand-dark-border">
+            {bookmarks.map((b) => (
+              <div key={b.id} className={`flex items-center justify-between px-5 py-3 transition-colors ${
+                isDarkMode ? 'bg-brand-dark-bg/60 border-brand-dark-border/40 hover:border-gilded-gold/40' : 'bg-[#FAF9F6] border-brand-border/60 hover:border-gilded-gold/40'
+              }`}>
+                <div className="flex items-center gap-3">
+                  <BookmarkCheck className="w-4 h-4 text-gilded-gold" />
+                  <div>
+                    <span className="text-sm font-bold font-sans text-brand-rich dark:text-brand-dark-active">
+                      سورة {toArabicNumerals(b.surahId)}
+                    </span>
+                    {b.verseIndex !== undefined && (
+                      <span className={`text-xs mr-2 ${isDarkMode ? 'text-brand-dark-mute' : 'text-brand-faded'} font-serif`}>
+                        - الآية {toArabicNumerals(b.verseIndex)}
+                      </span>
+                    )}
                     <div className={`text-xs ${isDarkMode ? 'text-brand-dark-mute' : 'text-brand-faded'} font-serif`}>
-                      {bookmark.verseIndex !== undefined ? `الآية رقم ${toArabicNumerals(bookmark.verseIndex)}` : 'السورة بصورة إجمالية'}
+                      {b.addedAt}
                     </div>
-                    <div className="text-[9px] opacity-40 font-mono">تاريخ الربط: {bookmark.addedAt}</div>
                   </div>
-                  <button
-                    id={`delete-bookmark-btn-${bookmark.id}`}
-                    aria-label={`حذف العلم ${surahMatch?.arName || ''}${bookmark.verseIndex !== undefined ? ` الآية ${bookmark.verseIndex}` : ''}`}
-                    onClick={() => removeBookmark(bookmark.id)}
-                    className="p-1 px-2.5 rounded-none bg-red-500/10 hover:bg-red-500 hover:text-white text-xs text-red-500 transition-all font-mono tracking-wider font-bold"
-                  >
-                    REMOVE
-                  </button>
                 </div>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="text-center py-8 text-xs text-brand-grey font-sans flex flex-col items-center justify-center space-y-2">
-            <BookmarkIcon className="w-8 h-8 opacity-20 text-gilded-gold" />
-            <span>لم تقم بحفظ أي آية أو سورة في مفضلة التدبّر والظلال بعد.</span>
-          </div>
-        )}
-      </div>
-
-      <div className={`p-6 rounded-none border space-y-4 ${
-        isDarkMode ? 'bg-[#151515] border-brand-dark-border' : 'bg-white border-brand-border'
-      }`} id="reading-history-section">
-        <h3 className="text-md font-bold font-serif border-b pb-3 border-gilded-gold/15">سجل المطالعات وبوابات الزيارة الأخيرة</h3>
-        {readingHistory.length > 0 ? (
-          <div className="space-y-2" id="history-items-list">
-            {readingHistory.map((item, i) => (
-              <div
-                id={`history-row-${i}`}
-                key={item.id}
-                className={`p-3 rounded-none flex items-center justify-between text-xs border ${
-                  isDarkMode ? 'bg-[#0E0E0E] border-[#2A2A2A]' : 'bg-[#faf9f6] border-brand-border/60'
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <Compass className="w-4 h-4 text-gilded-gold opacity-60" />
-                  <span className="font-bold font-serif">زيارة سورة {item.surahName}</span>
-                  <span className={`text-[10px] px-1.5 py-0.2 rounded-none bg-gilded-gold/10 text-gilded-gold font-mono`}>
-                    {item.verseIndex !== undefined ? `الآية ${toArabicNumerals(item.verseIndex)}` : 'السورة إجمالاً'}
-                  </span>
-                </div>
-                <span className="text-brand-grey font-mono text-[10px]">{item.viewedAt}</span>
+                <button
+                  id={`remove-bookmark-${b.id}`}
+                  onClick={() => removeBookmark(b.id)}
+                  className="text-brand-grey hover:text-red-500 transition-colors p-1"
+                  aria-label="حذف العلامة المرجعية"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
               </div>
             ))}
           </div>
-        ) : (
-          <div className="text-center py-6 text-xs text-brand-grey font-serif">
-            لم تبدأ القراءة ومطالعة exegesis السور بعد لحساب السجل.
+        </div>
+      )}
+
+      {readingHistory.length > 0 && (
+        <div className={`border ${isDarkMode ? 'bg-[#151515] border-brand-dark-border' : 'bg-white border-brand-border'}`}>
+          <div className="flex items-center gap-2 px-5 py-4 border-b border-brand-border dark:border-brand-dark-border">
+            <Clock className="w-4 h-4 text-gilded-gold" />
+            <h4 className="text-sm font-bold font-sans tracking-wider text-gilded-gold uppercase">Reading History</h4>
           </div>
-        )}
-      </div>
+          <div className="divide-y divide-brand-border dark:divide-brand-dark-border">
+            {readingHistory.map((h) => (
+              <div key={h.id} className={`px-5 py-3 ${
+                isDarkMode ? 'bg-[#0E0E0E] border-[#2A2A2A]' : 'bg-[#faf9f6] border-brand-border/60'
+              }`}>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-sm font-bold font-sans text-brand-rich dark:text-brand-dark-active">
+                      {h.surahName}
+                    </span>
+                    <span className={`text-xs mr-2 ${isDarkMode ? 'text-brand-dark-mute' : 'text-brand-faded'} font-serif`}>
+                      {h.verseIndex ? `الآية ${toArabicNumerals(h.verseIndex)}` : 'السورة كاملة'}
+                    </span>
+                  </div>
+                  <span className={`text-[10px] ${isDarkMode ? 'text-brand-dark-mute/60' : 'text-brand-faded/60'} font-mono`}>
+                    {h.viewedAt}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </motion.div>
   );
 }

@@ -1,167 +1,130 @@
-import { type FormEvent, type RefObject } from 'react';
+import { useRef, useCallback } from 'react';
 import { motion } from 'motion/react';
-import { Search, Send, Bookmark } from 'lucide-react';
+import { Search, X, ArrowLeft } from 'lucide-react';
+import { useTheme } from '../hooks/useTheme';
 import { toArabicNumerals } from '../utils';
-import type { SearchMatch } from '../hooks/useChat';
+import { QuickSearch } from './QuickSearch';
+import type { SearchMatch } from '../utils/search';
 
 interface SearchTabProps {
-  isDarkMode: boolean;
   searchInput: string;
   setSearchInput: (v: string) => void;
   results: SearchMatch[];
   searching: boolean;
-  bottomRef: RefObject<HTMLDivElement | null>;
+  bottomRef: React.RefObject<HTMLDivElement | null>;
   handleSearch: (query: string) => void;
   clearResults: () => void;
   onNavigateToSurah: (surahId: number) => void;
 }
 
 export function ChatTab({
-  isDarkMode, searchInput, setSearchInput, results, searching,
+  searchInput, setSearchInput, results, searching,
   bottomRef, handleSearch, clearResults, onNavigateToSurah
 }: SearchTabProps) {
-  const onSubmit = (e: FormEvent) => {
+  const { isDarkMode } = useTheme();
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const onSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
     handleSearch(searchInput);
-  };
+  }, [handleSearch, searchInput]);
 
   return (
     <motion.div
-      key="chat-panel"
-      id="panel-chat"
-      role="tabpanel"
-      aria-labelledby="active-tab-chat"
-      initial={{ opacity: 0, y: 15 }}
+      key="chat"
+      initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -15 }}
+      exit={{ opacity: 0, y: -12 }}
       transition={{ duration: 0.2 }}
-      className="space-y-4"
     >
-      <div className={`p-5 sm:p-6 rounded-none border flex flex-col h-[500px] overflow-hidden ${
-        isDarkMode ? 'bg-[#151515] border-brand-dark-border' : 'bg-white border-brand-border'
-      }`} id="scholarly-chat-widget">
-        <div className="flex items-center justify-between border-b pb-4 border-gilded-gold/10 shrink-0">
-          <div className="flex items-center gap-2">
-            <Search className="w-5 h-5 text-gilded-gold" />
-            <div className="text-right">
-              <h3 className="font-bold text-sm tracking-tight font-serif">البحث في نصوص الظلال</h3>
-              <p className={`text-[10px] ${isDarkMode ? 'text-brand-dark-mute' : 'text-brand-faded'}`}>
-                ابحث عن أي موضوع أو كلمة في تفسير سيد قطب
-              </p>
-            </div>
-          </div>
-          {results.length > 0 && (
-            <button
-              onClick={clearResults}
-              className="text-xs font-serif text-gilded-gold hover:underline transition-all opacity-80"
-            >
-              مسح النتائج
-            </button>
-          )}
-        </div>
-
-        <div className="flex-1 overflow-y-auto py-4 space-y-4" id="chat-messages-container">
-          {results.length > 0 ? (
-            results.map((result, i) => (
-              <button
-                key={i}
-                onClick={() => onNavigateToSurah(result.surahId)}
-                className={`w-full text-right p-4 rounded-none border transition-all cursor-pointer ${
-                  isDarkMode
-                    ? 'bg-[#0E0E0E] border-[#2A2A2A] hover:border-gilded-gold/40 text-[#F2F2F2]'
-                    : 'bg-brand-stone border-brand-border hover:border-gilded-gold/40 text-brand-rich'
-                }`}
-              >
-                <div className="flex items-center gap-2 mb-1">
-                  <Bookmark className="w-3 h-3 text-gilded-gold" />
-                  <span className="text-gilded-gold text-xs font-bold font-serif">
-                    سورة {result.surahName}
-                  </span>
-                  <span className={`text-[10px] px-1.5 py-0.5 ${isDarkMode ? 'bg-[#1e1e1e] text-brand-dark-mute' : 'bg-white text-brand-faded'} border font-mono`}>
-                    الآيات {toArabicNumerals(result.startVerse)}-{toArabicNumerals(result.endVerse)}
-                  </span>
-                </div>
-                <p className={`text-xs leading-relaxed font-serif ${isDarkMode ? 'text-brand-dark-mute' : 'text-brand-faded'} line-clamp-3`}>
-                  {result.excerpt}
-                </p>
-              </button>
-            ))
-          ) : searching ? (
-            <div className="flex flex-col items-center justify-center py-16 space-y-4">
-              <div className="w-8 h-8 border-2 border-gilded-gold/20 border-t-gilded-gold rounded-none animate-spin" />
-              <span className="text-xs text-gilded-gold animate-pulse">جاري البحث في النصوص...</span>
-            </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center py-16 space-y-4">
-              <Search className="w-10 h-10 text-gilded-gold/30" />
-              <div className="text-center">
-                <p className={`text-sm font-serif mb-1 ${isDarkMode ? 'text-brand-dark-mute' : 'text-brand-faded'}`}>
-                  اكتب كلمة أو موضوعاً للبحث في نصوص الظلال
-                </p>
-                <p className={`text-xs ${isDarkMode ? 'text-brand-dark-mute/60' : 'text-brand-faded/60'}`}>
-                  النتائج تشمل جميع السور المتوفرة
-                </p>
-              </div>
-            </div>
-          )}
-          <div ref={bottomRef} />
-        </div>
-
-        <div className="flex gap-2 py-2 overflow-x-auto border-t border-[#2A2A2A] whitespace-nowrap shrink-0 max-w-full" id="chat-quick-suggestions">
-          <button
-            onClick={() => { setSearchInput('التصوير الفني'); handleSearch('التصوير الفني'); }}
-            className={`text-[10px] px-2.5 py-1 border rounded-none transition-colors shrink-0 ${
-              isDarkMode ? 'border-brand-dark-border text-brand-dark-mute hover:text-white font-serif' : 'border-brand-border text-brand-faded hover:text-brand-rich font-serif'
-            }`}
-          >
-            التصوير الفني
-          </button>
-          <button
-            onClick={() => { setSearchInput('الجهاد'); handleSearch('الجهاد'); }}
-            className={`text-[10px] px-2.5 py-1 border rounded-none transition-colors shrink-0 ${
-              isDarkMode ? 'border-brand-dark-border text-brand-dark-mute hover:text-white font-serif' : 'border-brand-border text-brand-faded hover:text-brand-rich font-serif'
-            }`}
-          >
-            الجهاد في سبيل الله
-          </button>
-          <button
-            onClick={() => { setSearchInput('التوحيد'); handleSearch('التوحيد'); }}
-            className={`text-[10px] px-2.5 py-1 border rounded-none transition-colors shrink-0 ${
-              isDarkMode ? 'border-brand-dark-border text-brand-dark-mute hover:text-white font-serif' : 'border-brand-border text-brand-faded hover:text-brand-rich font-serif'
-            }`}
-          >
-            التوحيد والعبودية
-          </button>
-        </div>
-
-        <form
-          id="scholarly-chat-input-form"
-          onSubmit={onSubmit}
-          className={`flex gap-2 pt-3 border-t shrink-0 ${isDarkMode ? 'border-brand-dark-border' : 'border-brand-border'}`}
-        >
+      <form onSubmit={onSubmit} className="space-y-4">
+        <div className={`relative flex items-center border px-4 py-3 transition-all ${
+          isDarkMode ? 'bg-[#151515] border-brand-dark-border' : 'bg-white border-brand-border'
+        }`}>
+          <Search className="w-5 h-5 text-gilded-gold shrink-0 ml-3" />
           <input
-            id="scholarly-chat-input-field"
+            ref={inputRef}
+            id="tafsir-search-input"
             type="text"
-            placeholder="ابحث عن كلمة أو موضوع..."
-            aria-label="بحث في نصوص الظلال"
+            placeholder="ابحث في كامل موسوعة في ظلال القرآن..."
+            aria-label="ابحث في كامل الموسوعة"
             dir="rtl"
-            className={`flex-1 rounded-none border px-3 py-2 text-xs sm:text-sm font-sans focus:outline-none focus:border-gilded-gold ${
-              isDarkMode ? 'bg-[#0E0E0E] border-[#2A2A2A] text-white' : 'bg-white border-brand-border text-brand-rich'
-            }`}
+            className="bg-transparent w-full focus:outline-none placeholder-brand-grey font-sans"
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
-            disabled={searching}
           />
+          {searchInput && (
+            <button type="button" id="clear-input-btn" aria-label="مسح" onClick={() => { setSearchInput(''); clearResults(); }} className="p-1 hover:bg-black/10">
+              <X className="w-4 h-4 text-brand-grey" />
+            </button>
+          )}
           <button
-            id="chat-send-submit"
             type="submit"
-            aria-label="بحث"
-            className="px-4 py-2 bg-gilded-gold hover:bg-gilded-hover text-white rounded-none transition-all flex items-center justify-center shrink-0"
-            disabled={searching || !searchInput.trim()}
+            id="search-submit-btn"
+            className={`px-4 py-1.5 text-xs font-bold border transition-all ${
+              isDarkMode ? 'border-brand-dark-border text-brand-dark-mute hover:text-white' : 'border-brand-border text-brand-faded hover:text-brand-rich'
+            }`}
           >
-            <Send className="w-4 h-4 rtl-flip" />
+            بحث
           </button>
-        </form>
+        </div>
+
+        {!results.length && !searching && !searchInput && (
+          <QuickSearch onSelect={(q) => { setSearchInput(q); handleSearch(q); }} />
+        )}
+      </form>
+
+      <div className="mt-6 space-y-3" ref={bottomRef}>
+        {searching && (
+          <div className="flex justify-center py-12">
+            <div className="w-8 h-8 border-2 border-gilded-gold/20 border-t-gilded-gold animate-spin" />
+          </div>
+        )}
+
+        {!searching && results.length === 0 && searchInput && (
+          <div className="border p-8 text-center text-sm text-brand-grey font-serif">
+            لا توجد نتائج تطابق استعلامك: &quot;{searchInput}&quot;
+          </div>
+        )}
+
+        {results.slice(0, 50).map((match, i) => (
+          <div
+            key={`${match.surahId}-${match.startVerse}-${i}`}
+            id={`search-result-${i}`}
+            className={`border p-4 transition-all ${
+              isDarkMode ? 'bg-[#0E0E0E] border-[#2A2A2A]' : 'bg-white border-brand-border'
+            }`}
+          >
+            <div className="flex items-center gap-2 mb-2">
+              <button
+                id={`navigate-from-result-${i}`}
+                onClick={() => onNavigateToSurah(match.surahId)}
+                className="flex items-center gap-1 text-gilded-gold hover:underline text-xs font-mono font-bold"
+              >
+                <ArrowLeft className="w-3 h-3" />
+                {match.surahName} ({toArabicNumerals(match.surahId)})
+              </button>
+              <span className={`text-[10px] px-1.5 py-0.5 ${isDarkMode ? 'bg-[#1e1e1e] text-brand-dark-mute' : 'bg-white text-brand-faded'} border font-mono`}>
+                {toArabicNumerals(match.startVerse)}{match.endVerse !== match.startVerse ? ` - ${toArabicNumerals(match.endVerse)}` : ''}
+              </span>
+            </div>
+            <p className={`text-xs leading-relaxed font-serif ${isDarkMode ? 'text-brand-dark-mute' : 'text-brand-faded'} line-clamp-3`}>
+              {match.excerpt}
+            </p>
+          </div>
+        ))}
+
+        {results.length > 50 && (
+          <p className={`text-sm font-serif mb-1 ${isDarkMode ? 'text-brand-dark-mute' : 'text-brand-faded'}`}>
+            ... و{toArabicNumerals(results.length - 50)} نتيجة أخرى. استفسارك أكثر دقة لعرض نتائج أدق.
+          </p>
+        )}
+
+        {!searching && results.length > 0 && (
+          <p className={`text-xs ${isDarkMode ? 'text-brand-dark-mute/60' : 'text-brand-faded/60'}`}>
+            تم العثور على {toArabicNumerals(results.length)} نتيجة — مستخرجة من {toArabicNumerals(new Set(results.map(r => r.surahId)).size)} سورة
+          </p>
+        )}
       </div>
     </motion.div>
   );

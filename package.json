@@ -9,6 +9,8 @@
     "start": "node dist/server.cjs",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "cc:build": "cd command-center && pnpm build",
     "cc:mcp": "PROJECT_ROOT=$(pwd)/command-center node command-center/packages/mcp/dist/index.js",
     "ccui": "PROJECT_ROOT=$(pwd)/command-center node command-center/packages/tui/dist/index.js",
@@ -40,15 +42,20 @@
     "react-dom": "^19.2.7"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
     "@types/express": "^5.0.6",
     "@types/node": "^25.9.1",
     "@types/react": "^19.2.16",
     "@types/react-dom": "^19.2.3",
     "autoprefixer": "^10.5.0",
     "esbuild": "^0.28.0",
+    "jsdom": "^29.1.1",
     "tailwindcss": "^4.3.0",
     "tsx": "^4.22.4",
     "typescript": "^6.0.3",
-    "vite": "^8.0.16"
+    "vite": "^8.0.16",
+    "vitest": "^4.1.9"
   }
 }

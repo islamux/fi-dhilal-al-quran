@@ -1,47 +1,43 @@
 import { memo } from 'react';
+import { useTheme } from '../hooks/useTheme';
 import { toArabicNumerals } from '../utils';
 import type { Surah } from '../types';
 
 interface SurahBannerProps {
-  isDarkMode: boolean;
   selectedSurah: Surah;
 }
 
-export const SurahBanner = memo(function SurahBanner({ isDarkMode, selectedSurah }: SurahBannerProps) {
+export const SurahBanner = memo(function SurahBanner({ selectedSurah }: SurahBannerProps) {
+  const { isDarkMode } = useTheme();
   return (
-    <div className={`p-6 sm:p-8 rounded-none border relative overflow-hidden transition-all text-right ${
+    <div className={`border p-5 md:p-6 rounded-none flex items-center justify-between ${
       isDarkMode ? 'bg-[#151515] border-brand-dark-border' : 'bg-white border-brand-border'
-    }`} id="surah-banner-card">
-      <div className="absolute left-4 top-1/2 -translate-y-1/2 text-8xl font-serif text-gilded-gold/5 pointer-events-none select-none font-bold">
-        {selectedSurah.name.substring(0, 3)}
+    }`} id="surah-hero-banner">
+      <div className="flex flex-col text-left gap-0.5">
+        <span className="text-[9px] uppercase tracking-[0.25em] text-gilded-gold font-mono mb-1 font-bold">
+          Surah {selectedSurah.id} · Juz {selectedSurah.juzNumber}
+        </span>
+        <h1 className="text-3xl sm:text-4xl font-bold font-serif tracking-tight text-brand-rich dark:text-brand-dark-active">
+          {selectedSurah.arName}
+        </h1>
+        <div className="flex items-center gap-2 mt-2">
+          <span className="text-[10px] px-2 py-0.5 bg-gilded-gold/10 text-gilded-gold border border-gilded-gold/20 font-mono font-bold">
+            {selectedSurah.type === 'مكية' ? 'MACAN REVELATION' : 'MEDINAN REVELATION'}
+          </span>
+          <span className="text-[10px] px-2 py-0.5 bg-brand-grey/10 text-brand-grey border border-brand-grey/20 font-mono font-bold">
+            {toArabicNumerals(selectedSurah.versesCount)} VERSE{selectedSurah.versesCount !== 1 ? 'S' : ''}
+          </span>
+        </div>
       </div>
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
-        <div>
-          <div className="flex items-center gap-3 mb-1">
-            <span className="text-[10px] uppercase font-mono tracking-widest text-[#F27D26] leading-none font-bold">PORTFOLIO EXEGESIS</span>
-            <span className="text-[10px] px-2 py-0.5 rounded-none font-mono text-white bg-gilded-gold leading-none font-bold">
-              SURA {toArabicNumerals(selectedSurah.id)}
-            </span>
-          </div>
-          <h1 className="text-3xl sm:text-4xl font-extrabold text-gilded-gold font-serif mb-2">سُورة {selectedSurah.arName}</h1>
-          <p className={`text-xs ${isDarkMode ? 'text-brand-dark-mute' : 'text-brand-faded'} max-w-xl leading-relaxed`}>
-             {selectedSurah.shortOverview}
-          </p>
+      <div className="hidden sm:flex flex-col items-center">
+        <div className={`text-3xl font-serif leading-none tracking-wide ${isDarkMode ? 'text-brand-dark-mute/20' : 'text-brand-faded/15'}`}>
+          {selectedSurah.name}
         </div>
-        <div className="self-end sm:self-center shrink-0 flex flex-row sm:flex-col items-end gap-3 text-right bg-gilded-gold/5 px-4 py-3 rounded-none border border-gilded-gold/20">
-          <div className="text-xs">
-            <span className="opacity-65 ml-1">تنزيلها:</span>
-            <strong className="text-gilded-gold font-sans">{selectedSurah.type}</strong>
+        {selectedSurah.id !== 9 && selectedSurah.id !== 1 && (
+          <div className="text-[8px] mt-1 font-mono tracking-[0.3em] text-gilded-gold/50 font-bold">
+            BISMILLAH AL-RAHMAN AL-RAHEEM
           </div>
-          <div className="text-xs">
-            <span className="opacity-65 ml-1">عدد آياتها:</span>
-            <strong className="text-gilded-gold font-sans">{toArabicNumerals(selectedSurah.versesCount)} آية</strong>
-          </div>
-          <div className="text-xs">
-            <span className="opacity-65 ml-1">نظام الترابط:</span>
-            <strong className="text-gilded-gold font-sans">الجزء {toArabicNumerals(selectedSurah.juzNumber)}</strong>
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );

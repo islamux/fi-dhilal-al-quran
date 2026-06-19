@@ -1,81 +1,34 @@
-import { useState, useEffect, Suspense, lazy } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { SURAHS } from './data/surahs';
-import { Surah } from './types';
 import { useTheme } from './hooks/useTheme';
-import { useBookmarks } from './hooks/useBookmarks';
-import { useProgress } from './hooks/useProgress';
-import { useTafsir } from './hooks/useTafsir';
-import { useSearch } from './hooks/useChat';
+import { useAppState } from './hooks/useAppState';
+import { MobileOverlay } from './components/MobileOverlay';
+import { BrandStrip } from './components/BrandStrip';
 import { Sidebar } from './components/Sidebar';
-import { Header } from './components/Header';
-import { SurahBanner } from './components/SurahBanner';
-import { TabBar } from './components/TabBar';
-import { Footer } from './components/Footer';
-
-const OverviewTab = lazy(() => import('./components/OverviewTab').then(m => ({ default: m.OverviewTab })));
-const VersesTab = lazy(() => import('./components/VersesTab').then(m => ({ default: m.VersesTab })));
-const ChatTab = lazy(() => import('./components/ChatTab').then(m => ({ default: m.ChatTab })));
-const StatsTab = lazy(() => import('./components/StatsTab').then(m => ({ default: m.StatsTab })));
+import { MainContent } from './components/MainContent';
 
 export default function App() {
-  const [selectedSurah, setSelectedSurah] = useState<Surah>(SURAHS[0]);
-  const [activeTab, setActiveTab] = useState<'overview' | 'verses' | 'chat' | 'stats'>('overview');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  const [juzFilter, setJuzFilter] = useState<number | null>(null);
-  const [typeFilter, setTypeFilter] = useState<'all' | 'مكية' | 'مدنية'>('all');
-  const [sidebarTab, setSidebarTab] = useState<'surahs' | 'juz'>('surahs');
-
-  const { isDarkMode, toggleTheme } = useTheme();
-  const { bookmarks, toggleBookmark, isBookmarked, removeBookmark, clearAll } = useBookmarks();
-  const { readingHistory, completedSurahs, addHistoryItem, toggleComplete } = useProgress();
-  const { tafsirText, verseRangeValue, setVerseRangeValue, fetchTafsir, hasTafsir } = useTafsir();
-  const { searchInput, setSearchInput, results, searching, bottomRef, handleSearch, clearResults } = useSearch();
-
-  useEffect(() => {
-    fetchTafsir(selectedSurah, 'كاملة');
-    addHistoryItem(selectedSurah, 'كاملة');
-    setVerseRangeValue('كاملة');
-  }, [selectedSurah]);
-
-  const handleNavigateToSurah = (surahId: number) => {
-    const surah = SURAHS.find(s => s.id === surahId);
-    if (surah) {
-      setSelectedSurah(surah);
-      setActiveTab('verses');
-    }
-  };
+  const { isDarkMode } = useTheme();
+  const {
+    selectedSurah, setSelectedSurah,
+    activeTab, setActiveTab,
+    searchQuery, setSearchQuery,
+    mobileSidebarOpen, setMobileSidebarOpen,
+    juzFilter, setJuzFilter,
+    typeFilter, setTypeFilter,
+    sidebarTab, setSidebarTab,
+    bookmarks, toggleBookmark, isBookmarked, removeBookmark, clearAll,
+    readingHistory, completedSurahs, addHistoryItem, toggleComplete,
+    tafsirText, verseRangeValue, setVerseRangeValue, fetchTafsir, hasTafsir,
+    searchInput, setSearchInput, results, searching, bottomRef, handleSearch, clearResults,
+    handleNavigateToSurah,
+  } = useAppState();
 
   return (
     <div className={`flex h-screen w-full overflow-hidden ${
       isDarkMode ? 'bg-brand-dark-bg text-brand-dark-active' : 'bg-brand-parchment text-brand-rich'
     }`}>
-      <AnimatePresence>
-        {mobileSidebarOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 0.5 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setMobileSidebarOpen(false)}
-            className="fixed inset-0 z-40 bg-black lg:hidden"
-            id="mobile-overlay"
-          />
-        )}
-      </AnimatePresence>
-
-      <div className={`hidden xl:flex w-14 h-full border-r items-center justify-center shrink-0 ${
-        isDarkMode ? 'bg-[#0B0B0B] border-brand-dark-border' : 'bg-[#FAF9F6] border-brand-border'
-      }`} id="extreme-left-brand-strip">
-        <div className={`rotate-[-90deg] whitespace-nowrap text-[9px] uppercase tracking-[0.55em] font-mono font-bold ${
-          isDarkMode ? 'text-brand-dark-mute/50' : 'text-brand-faded/50'
-        }`}>
-          QUTB EXEGESIS STUDY • TAFAKKUR SESSION ١١٤
-        </div>
-      </div>
-
+      <MobileOverlay open={mobileSidebarOpen} onClose={() => setMobileSidebarOpen(false)} />
+      <BrandStrip />
       <Sidebar
-        isDarkMode={isDarkMode}
         selectedSurah={selectedSurah}
         setSelectedSurah={setSelectedSurah}
         searchQuery={searchQuery}
@@ -90,84 +43,34 @@ export default function App() {
         setSidebarTab={setSidebarTab}
         completedSurahs={completedSurahs}
       />
-
-      <main className="flex-1 h-full flex flex-col overflow-hidden relative" id="main-reading-canvas">
-        <div className="absolute top-0 left-0 right-0 z-50 h-1 bg-black/10" id="progress-bar-track">
-          <div
-            className="h-full bg-gilded-gold transition-all duration-300 shadow-[0_0_8px_#c9a84c]"
-            style={{ width: activeTab === 'overview' ? '25%' : activeTab === 'verses' ? '65%' : activeTab === 'chat' ? '90%' : '100%' }}
-          />
-        </div>
-
-        <Header
-          isDarkMode={isDarkMode}
-          toggleTheme={toggleTheme}
-          selectedSurah={selectedSurah}
-          setMobileSidebarOpen={setMobileSidebarOpen}
-          toggleBookmark={toggleBookmark}
-          isBookmarked={isBookmarked}
-          toggleComplete={toggleComplete}
-          completedSurahs={completedSurahs}
-        />
-
-        <div className="flex-1 overflow-y-auto" id="reading-scroll-pane">
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 md:px-8 py-8 md:py-12 space-y-8">
-            <SurahBanner isDarkMode={isDarkMode} selectedSurah={selectedSurah} />
-            <TabBar activeTab={activeTab} setActiveTab={setActiveTab} isDarkMode={isDarkMode} />
-
-            <Suspense fallback={<div className="flex justify-center py-16"><div className="w-8 h-8 border-2 border-gilded-gold/20 border-t-gilded-gold animate-spin" /></div>}>
-              <AnimatePresence mode="wait">
-                {activeTab === 'overview' && (
-                  <OverviewTab
-                    isDarkMode={isDarkMode}
-                    tafsirText={tafsirText}
-                    selectedSurah={selectedSurah}
-                    hasTafsir={hasTafsir(selectedSurah.id)}
-                  />
-                )}
-                {activeTab === 'verses' && (
-                  <VersesTab
-                    isDarkMode={isDarkMode}
-                    tafsirText={tafsirText}
-                    verseRangeValue={verseRangeValue}
-                    setVerseRangeValue={setVerseRangeValue}
-                    selectedSurah={selectedSurah}
-                    fetchTafsir={fetchTafsir}
-                    toggleBookmark={toggleBookmark}
-                    isBookmarked={isBookmarked}
-                    hasTafsir={hasTafsir(selectedSurah.id)}
-                  />
-                )}
-                {activeTab === 'chat' && (
-                  <ChatTab
-                    isDarkMode={isDarkMode}
-                    searchInput={searchInput}
-                    setSearchInput={setSearchInput}
-                    results={results}
-                    searching={searching}
-                    bottomRef={bottomRef}
-                    handleSearch={handleSearch}
-                    clearResults={clearResults}
-                    onNavigateToSurah={handleNavigateToSurah}
-                  />
-                )}
-                {activeTab === 'stats' && (
-                  <StatsTab
-                    isDarkMode={isDarkMode}
-                    completedSurahs={completedSurahs}
-                    bookmarks={bookmarks}
-                    readingHistory={readingHistory}
-                    clearAll={clearAll}
-                    removeBookmark={removeBookmark}
-                  />
-                )}
-              </AnimatePresence>
-            </Suspense>
-
-            <Footer />
-          </div>
-        </div>
-      </main>
+      <MainContent
+        selectedSurah={selectedSurah}
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        mobileSidebarOpen={mobileSidebarOpen}
+        setMobileSidebarOpen={setMobileSidebarOpen}
+        toggleBookmark={toggleBookmark}
+        isBookmarked={isBookmarked}
+        toggleComplete={toggleComplete}
+        completedSurahs={completedSurahs}
+        tafsirText={tafsirText}
+        verseRangeValue={verseRangeValue}
+        setVerseRangeValue={setVerseRangeValue}
+        fetchTafsir={fetchTafsir}
+        hasTafsir={hasTafsir}
+        searchInput={searchInput}
+        setSearchInput={setSearchInput}
+        results={results}
+        searching={searching}
+        bottomRef={bottomRef}
+        handleSearch={handleSearch}
+        clearResults={clearResults}
+        handleNavigateToSurah={handleNavigateToSurah}
+        bookmarks={bookmarks}
+        readingHistory={readingHistory}
+        clearAll={clearAll}
+        removeBookmark={removeBookmark}
+      />
     </div>
   );
 }

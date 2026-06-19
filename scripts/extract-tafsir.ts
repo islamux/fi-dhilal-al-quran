@@ -29,7 +29,16 @@ for (let i = 1; i <= 22; i++) {
   const padded = String(i).padStart(3, '0');
   const filePath = `${SRC_DIR}/فى ظلال القرآن موافقا للمطبوع ${padded}.doc`;
 
-  const text = execSync(`catdoc -d utf-8 "${filePath}"`, { encoding: 'utf-8', maxBuffer: 50 * 1024 * 1024 });
+  let text: string;
+  try {
+    text = execSync(`catdoc -d utf-8 "${filePath}"`, { encoding: 'utf-8', maxBuffer: 50 * 1024 * 1024 });
+  } catch (e: any) {
+    if (e?.code === 'ENOENT') {
+      console.error('catdoc not found. Install it with: apt-get install catdoc (Linux) or brew install catdoc (macOS)');
+      process.exit(1);
+    }
+    throw e;
+  }
   const lines = text.split('\n');
 
   for (const rawLine of lines) {
@@ -106,11 +115,7 @@ for (const id of sortedIds) {
   const entry = tafsirMap.get(id)!;
   output += `  ${id}: [\n`;
   for (const section of entry.sections) {
-    const escaped = section.text
-      .replace(/\\/g, '\\\\')
-      .replace(/`/g, '\\`')
-      .replace(/\${/g, '\\${');
-    output += `    { startVerse: ${section.startVerse}, endVerse: ${section.endVerse}, text: \`${escaped}\` },\n`;
+    output += `    { startVerse: ${section.startVerse}, endVerse: ${section.endVerse}, text: ${JSON.stringify(section.text.trim())} },\n`;
   }
   output += `  ],\n`;
 }

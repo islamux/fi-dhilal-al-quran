@@ -1,27 +1,15 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import type { Surah } from '../types';
 import { TAFSIR_DATA, SURAHS_WITH_TAFSIR } from '../data/tafsir';
+import { getTafsirText } from '../utils/tafsir-data';
 
 export function useTafsir() {
   const [tafsirText, setTafsirText] = useState<string | null>(null);
   const [verseRangeValue, setVerseRangeValue] = useState('كاملة');
 
-  const fetchTafsir = (surah: Surah, range = 'كاملة') => {
-    const surahData = TAFSIR_DATA[surah.id];
-    if (!surahData) {
-      setTafsirText(null);
-      return;
-    }
-    if (range === 'كاملة') {
-      setTafsirText(surahData.map(s => s.text).join('\n\n'));
-      return;
-    }
-    const verseNum = parseInt(range);
-    const matched = surahData.filter(
-      s => s.startVerse <= verseNum && s.endVerse >= verseNum
-    );
-    setTafsirText(matched.length > 0 ? matched.map(s => s.text).join('\n\n') : null);
-  };
+  const fetchTafsir = useCallback((surah: Surah, range = 'كاملة') => {
+    setTafsirText(getTafsirText(surah.id, TAFSIR_DATA, range));
+  }, []);
 
   return {
     tafsirText,

@@ -1,12 +1,12 @@
 import { useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
 import { Search, X, Compass } from 'lucide-react';
+import { useTheme } from '../hooks/useTheme';
 import { toArabicNumerals } from '../utils';
 import { SURAHS, JUZ_INDEX } from '../data/surahs';
 import type { Surah } from '../types';
 
 interface SidebarProps {
-  isDarkMode: boolean;
   selectedSurah: Surah;
   setSelectedSurah: (surah: Surah) => void;
   searchQuery: string;
@@ -23,10 +23,11 @@ interface SidebarProps {
 }
 
 export function Sidebar({
-  isDarkMode, selectedSurah, setSelectedSurah, searchQuery, setSearchQuery,
+  selectedSurah, setSelectedSurah, searchQuery, setSearchQuery,
   mobileSidebarOpen, setMobileSidebarOpen, juzFilter, setJuzFilter,
   typeFilter, setTypeFilter, sidebarTab, setSidebarTab, completedSurahs
 }: SidebarProps) {
+  const { isDarkMode } = useTheme();
   const closeBtnRef = useRef<HTMLButtonElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const firstJuzBtnRef = useRef<HTMLButtonElement>(null);

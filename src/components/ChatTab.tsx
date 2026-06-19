@@ -4,6 +4,7 @@ import { Search, X, ArrowLeft } from 'lucide-react';
 import { useTheme } from '../hooks/useTheme';
 import { toArabicNumerals } from '../utils';
 import { QuickSearch } from './QuickSearch';
+import { HighlightedText } from './HighlightedText';
 import type { SearchMatch } from '../utils/search';
 
 interface SearchTabProps {
@@ -108,9 +109,9 @@ export function ChatTab({
                 {toArabicNumerals(match.startVerse)}{match.endVerse !== match.startVerse ? ` - ${toArabicNumerals(match.endVerse)}` : ''}
               </span>
             </div>
-            <p className={`text-xs leading-relaxed font-serif ${isDarkMode ? 'text-brand-dark-mute' : 'text-brand-faded'} line-clamp-3`}>
-              {match.excerpt}
-            </p>
+            <div className={`text-xs leading-relaxed font-serif line-clamp-3 ${isDarkMode ? 'text-brand-dark-mute' : 'text-brand-faded'}`}>
+              <HighlightedText text={match.excerpt} query={searchInput} />
+            </div>
           </div>
         ))}
 

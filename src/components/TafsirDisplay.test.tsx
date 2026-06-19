@@ -22,19 +22,18 @@ describe('TafsirDisplay', () => {
     expect(screen.getByText(/AYAH/)).toBeInTheDocument();
   });
 
-  it('splits text by newlines into paragraphs', () => {
+  it('formats text into paragraphs via formatTafsirParagraphs', () => {
     renderWithTheme(
-      <TafsirDisplay tafsirText={'فقرة أولى\nفقرة ثانية'} verseRangeValue="1-50" />
+      <TafsirDisplay tafsirText={'فقرة أولى.\n\nفقرة ثانية'} verseRangeValue="1-50" />
     );
-    expect(screen.getByText('فقرة أولى')).toBeInTheDocument();
+    expect(screen.getByText('فقرة أولى.')).toBeInTheDocument();
     expect(screen.getByText('فقرة ثانية')).toBeInTheDocument();
   });
 
-  it('filters out empty lines', () => {
-    const { container } = renderWithTheme(
-      <TafsirDisplay tafsirText={'فقرة أولى\n\nفقرة ثانية'} verseRangeValue="1-50" />
+  it('joins wrapped lines within a paragraph', () => {
+    renderWithTheme(
+      <TafsirDisplay tafsirText={'فقرة أولى\nمستمرة'} verseRangeValue="1-50" />
     );
-    const paragraphs = container.querySelectorAll('p');
-    expect(paragraphs).toHaveLength(2);
+    expect(screen.getByText('فقرة أولى مستمرة')).toBeInTheDocument();
   });
 });

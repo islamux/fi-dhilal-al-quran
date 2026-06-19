@@ -53,7 +53,10 @@
 - **Never delete the branch** after merge
 
 ## Notable
-- Test framework: Vitest + Testing Library (46 tests across 7 files)
+- Test framework: Vitest + Testing Library (71 tests across 8 files)
 - `pnpm test` to run
 - No CI/CD, Docker, or GitHub Actions
 - Arabic-first; all user-facing text is Arabic
+
+## Session History
+- [`sessions/2026-06-19-tafsir-formatting.md`](sessions/2026-06-19-tafsir-formatting.md) — paragraph formatting heuristic for `.doc` text

@@ -1,3 +1,39 @@
+export interface TafsirSegment {
+  text: string;
+  isVerse: boolean;
+}
+
+export function splitVerseSegments(text: string): TafsirSegment[] {
+  if (!text) return [{ text: '', isVerse: false }];
+
+  const segments: TafsirSegment[] = [];
+  const parts = text.split(/(«[^»]*»)/g);
+
+  for (const part of parts) {
+    if (!part) continue;
+
+    if (part.startsWith('«') && part.endsWith('»')) {
+      segments.push({ text: part, isVerse: true });
+    } else {
+      const verseMatch = part.match(/.*\(\d+\)/);
+      if (verseMatch) {
+        const verseEnd = verseMatch[0].length;
+        if (verseEnd > 0) {
+          segments.push({ text: part.slice(0, verseEnd), isVerse: true });
+        }
+        const commentary = part.slice(verseEnd);
+        if (commentary) {
+          segments.push({ text: commentary, isVerse: false });
+        }
+      } else {
+        segments.push({ text: part, isVerse: false });
+      }
+    }
+  }
+
+  return segments;
+}
+
 export function formatTafsirParagraphs(text: string | null): string[] {
   if (!text) return [];
 

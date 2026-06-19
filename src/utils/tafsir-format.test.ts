@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatTafsirParagraphs } from './tafsir-format';
+import { formatTafsirParagraphs, splitVerseSegments } from './tafsir-format';
 
 describe('formatTafsirParagraphs', () => {
   it('returns empty array for null', () => {
@@ -146,5 +146,57 @@ describe('formatTafsirParagraphs', () => {
     // فبعد is not a starter, should join
     const result = formatTafsirParagraphs('حدث ذلك.\nفبعد هذا انتهى.');
     expect(result).toEqual(['حدث ذلك. فبعد هذا انتهى.']);
+  });
+});
+
+describe('splitVerseSegments', () => {
+  it('returns commentary segment for text without verse numbers', () => {
+    const result = splitVerseSegments('يردد المسلم هذه السورة');
+    expect(result).toHaveLength(1);
+    expect(result[0]).toEqual({ text: 'يردد المسلم هذه السورة', isVerse: false });
+  });
+
+  it('returns verse segment for text with verse numbers', () => {
+    const result = splitVerseSegments('الْحَمْدُ لِلَّهِ (2) الرَّحْمنِ الرَّحِيمِ (3)');
+    expect(result).toHaveLength(1);
+    expect(result[0].isVerse).toBe(true);
+    expect(result[0].text).toContain('(3)');
+  });
+
+  it('splits mixed verse-commentary at last digit', () => {
+    const result = splitVerseSegments('الضَّالِّينَ (7) يردد المسلم هذه السورة');
+    expect(result).toHaveLength(2);
+    expect(result[0]).toEqual({ text: 'الضَّالِّينَ (7)', isVerse: true });
+    expect(result[1].isVerse).toBe(false);
+  });
+
+  it('colors quoted text as verse', () => {
+    const result = splitVerseSegments('قال تعالى: «وَهُوَ الْغَفُورُ» وهو المختص');
+    expect(result).toHaveLength(3);
+    expect(result[0].isVerse).toBe(false);
+    expect(result[1]).toEqual({ text: '«وَهُوَ الْغَفُورُ»', isVerse: true });
+    expect(result[2].isVerse).toBe(false);
+  });
+
+  it('handles mixed verse pattern with quotes', () => {
+    const result = splitVerseSegments('الضَّالِّينَ (7) قال: «آية» ثم تكلم');
+    expect(result).toHaveLength(4);
+    expect(result[0]).toEqual({ text: 'الضَّالِّينَ (7)', isVerse: true });
+    expect(result[1].isVerse).toBe(false);
+    expect(result[2]).toEqual({ text: '«آية»', isVerse: true });
+    expect(result[3].isVerse).toBe(false);
+  });
+
+  it('returns empty segment for empty text', () => {
+    const result = splitVerseSegments('');
+    expect(result).toHaveLength(1);
+    expect(result[0]).toEqual({ text: '', isVerse: false });
+  });
+
+  it('handles text with verse number mid-commentary', () => {
+    const result = splitVerseSegments('في الآية (2) إشارة إلى المعنى');
+    expect(result).toHaveLength(2);
+    expect(result[0].isVerse).toBe(true);
+    expect(result[1]).toEqual({ text: ' إشارة إلى المعنى', isVerse: false });
   });
 });

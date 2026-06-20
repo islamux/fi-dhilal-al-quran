@@ -10,3 +10,4 @@ fi-thila-al-quran-word-src/
 
 # Generated data (regenerate with `pnpm exec tsx scripts/extract-tafsir.ts`)
 src/data/tafsir.ts
+.opencode/

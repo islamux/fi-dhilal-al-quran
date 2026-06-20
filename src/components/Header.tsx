@@ -32,7 +32,7 @@ export function Header({
         </button>
         <div className="flex flex-col text-right">
           <h2 className="text-xl sm:text-2xl font-bold font-serif leading-none tracking-tight text-brand-rich dark:text-brand-dark-active">
-            فِي ًظِلَالِ <span className="italic font-normal text-gilded-gold font-serif">الْقُرْآن</span>
+            فِي ظِلَالِ <span className="italic font-normal text-gilded-gold font-serif">الْقُرْآن</span>
           </h2>
         </div>
         <span className="text-[10px] px-2.5 py-0.5 rounded-none bg-gilded-gold/10 text-gilded-gold border border-gilded-gold/20 font-mono font-bold shrink-0 hidden sm:inline-block">

@@ -1,4 +1,4 @@
-import { useRef, useCallback } from 'react';
+import { useRef, useCallback, useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { Search, X, ArrowLeft } from 'lucide-react';
 import { useTheme } from '../hooks/useTheme';
@@ -24,6 +24,9 @@ export function ChatTab({
 }: SearchTabProps) {
   const { isDarkMode } = useTheme();
   const inputRef = useRef<HTMLInputElement>(null);
+  const [visibleCount, setVisibleCount] = useState(50);
+
+  useEffect(() => { setVisibleCount(50); }, [results]);
 
   const onSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
@@ -88,7 +91,7 @@ export function ChatTab({
           </div>
         )}
 
-        {results.slice(0, 50).map((match, i) => (
+        {results.slice(0, visibleCount).map((match, i) => (
           <div
             key={`${match.surahId}-${match.startVerse}-${i}`}
             id={`search-result-${i}`}
@@ -115,10 +118,15 @@ export function ChatTab({
           </div>
         ))}
 
-        {results.length > 50 && (
-          <p className={`text-sm font-serif mb-1 ${isDarkMode ? 'text-brand-dark-mute' : 'text-brand-faded'}`}>
-            ... و{toArabicNumerals(results.length - 50)} نتيجة أخرى. استفسارك أكثر دقة لعرض نتائج أدق.
-          </p>
+        {results.length > visibleCount && (
+          <button
+            onClick={() => setVisibleCount(v => v + 50)}
+            className={`w-full border py-3 text-sm font-semibold text-gilded-gold transition-all hover:bg-gilded-gold/5 ${
+              isDarkMode ? 'border-[#2A2A2A]' : 'border-brand-border'
+            }`}
+          >
+            عرض {toArabicNumerals(results.length - visibleCount)} نتيجة أخرى
+          </button>
         )}
 
         {!searching && results.length > 0 && (

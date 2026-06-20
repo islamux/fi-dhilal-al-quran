@@ -52,4 +52,6 @@ All tafsir content is extracted from `fi-thila-al-quran-word-src/*.doc` files an
 
 ## License
 
-The codebase is provided for reference. The tafsir text is the work of Sayyid Qutb (شهيد الفكرة).
+GNU General Public License v3.0 — see [LICENSE](LICENSE).
+
+The tafsir text remains the work of Sayyid Qutb (شهيد الفكرة).

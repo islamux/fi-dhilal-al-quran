@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
-import { TAFSIR_DATA } from '../data/tafsir';
 import { SURAHS } from '../data/surahs';
+import { loadTafsirData } from '../data/tafsir-loader';
 import { searchTafsir, type SearchMatch } from '../utils/search';
 
 const surahNameMap = new Map<number, string>();
@@ -12,10 +12,11 @@ export function useSearch() {
   const [searching, setSearching] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  const handleSearch = (query: string) => {
+  const handleSearch = async (query: string) => {
     if (!query.trim()) return;
     setSearching(true);
-    setResults(searchTafsir(query, TAFSIR_DATA, surahNameMap));
+    const data = await loadTafsirData();
+    setResults(searchTafsir(query, data, surahNameMap));
     setSearching(false);
   };
 

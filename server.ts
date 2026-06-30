@@ -1,12 +1,27 @@
 import express, { type Request, type Response } from 'express';
 import path from 'path';
+import helmet from 'helmet';
 import { createServer as createViteServer } from 'vite';
 import healthRouter from './server/routes/health';
 
 const app = express();
 
-const PORT = 3000;
+const PORT = parseInt(process.env.PORT || '3000', 10);
 
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
+      styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+      fontSrc: ["'self'", 'https://fonts.gstatic.com'],
+      imgSrc: ["'self'", 'data:'],
+      connectSrc: ["'self'"],
+      frameAncestors: ["'none'"],
+    },
+  },
+  crossOriginEmbedderPolicy: false,
+}));
 app.use(healthRouter);
 
 async function startServer() {
@@ -24,7 +39,12 @@ async function startServer() {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
     app.get('*', (req: Request, res: Response) => {
-      res.sendFile(path.join(distPath, 'index.html'));
+      const filePath = path.join(distPath, 'index.html');
+      res.sendFile(filePath, err => {
+        if (err) {
+          res.status(404).send('<html dir="rtl"><body style="font-family:sans-serif;padding:4rem;text-align:center;background:#0E0E0E;color:#E0E0E0"><h1 style="color:#F27D26">الصفحة غير موجودة</h1><p>عذراً، لم نعثر على الصفحة المطلوبة.</p><a href="/" style="color:#F27D26">العودة إلى الصفحة الرئيسية</a></body></html>');
+        }
+      });
     });
   }
 
@@ -33,4 +53,7 @@ async function startServer() {
   });
 }
 
-startServer();
+startServer().catch(err => {
+  console.error('Failed to start server:', err);
+  process.exit(1);
+});

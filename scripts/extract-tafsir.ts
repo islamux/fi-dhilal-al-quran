@@ -11,6 +11,7 @@ interface RawSection {
 
 const SRC_DIR = new URL('../fi-thila-al-quran-word-src', import.meta.url).pathname;
 const OUT_FILE = new URL('../src/data/tafsir.ts', import.meta.url).pathname;
+const META_FILE = new URL('../src/data/tafsir-meta.ts', import.meta.url).pathname;
 
 const SECTION_RE = /\[سورة\s+([^(]+?)\s*\((\d+)\)\s*:\s*الآيات\s+(\d+)\s+إلى\s+(\d+)\]/;
 const PAGE_REF_RE = /^\(\d+\/\d+\)\s*$/;
@@ -109,6 +110,7 @@ output += `// Sections count: ${allSections.length}, Surahs: ${sortedIds.length}
 
 output += `export interface TafsirSection {\n  startVerse: number;\n  endVerse: number;\n  text: string;\n}\n\n`;
 
+output += `import type { TafsirSection } from '../types';\n\n`;
 output += `export const TAFSIR_DATA: Record<number, TafsirSection[]> = {\n`;
 
 for (const id of sortedIds) {
@@ -120,10 +122,14 @@ for (const id of sortedIds) {
   output += `  ],\n`;
 }
 
-output += `};\n\n`;
-output += `export const SURAHS_WITH_TAFSIR = new Set([${sortedIds.join(', ')}]);\n`;
+output += `};\n`;
 
 writeFileSync(OUT_FILE, output, 'utf-8');
 console.log(`Done. Written ${sortedIds.length} surahs (${allSections.length} sections) to ${OUT_FILE}`);
+
+const metaOutput = `// Auto-generated from doc files. Do not edit manually.\nexport const SURAHS_WITH_TAFSIR = new Set([${sortedIds.join(', ')}]);\n`;
+writeFileSync(META_FILE, metaOutput, 'utf-8');
+console.log(`Meta written to ${META_FILE}`);
+
 const sizeKb = (Buffer.byteLength(output, 'utf-8') / 1024).toFixed(1);
-console.log(`File size: ${sizeKb} KB`);
+console.log(`Main file size: ${sizeKb} KB`);

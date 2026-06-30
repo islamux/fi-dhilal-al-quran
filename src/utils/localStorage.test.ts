@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { localStorageBackend, createMemoryBackend } from './localStorage';
+import { localStorageBackend } from './localStorage';
 
 describe('localStorageBackend', () => {
   beforeEach(() => localStorage.clear());
@@ -19,6 +19,20 @@ describe('localStorageBackend', () => {
     expect(localStorageBackend.get('key')).toBe('new');
   });
 });
+
+function createMemoryBackend() {
+  const store = new Map<string, string>();
+  return {
+    get<T>(key: string): T | null {
+      const raw = store.get(key);
+      if (raw === undefined) return null;
+      try { return JSON.parse(raw) as T; } catch { return null; }
+    },
+    set<T>(key: string, value: T): void {
+      store.set(key, JSON.stringify(value));
+    },
+  };
+}
 
 describe('createMemoryBackend', () => {
   it('stores and retrieves a value', () => {

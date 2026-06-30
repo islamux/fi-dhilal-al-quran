@@ -1,9 +1,4 @@
-export interface StorageBackend {
-  get<T>(key: string): T | null;
-  set<T>(key: string, value: T): void;
-}
-
-export const localStorageBackend: StorageBackend = {
+export const localStorageBackend = {
   get<T>(key: string): T | null {
     const raw = localStorage.getItem(key);
     if (raw === null) return null;
@@ -13,17 +8,3 @@ export const localStorageBackend: StorageBackend = {
     localStorage.setItem(key, JSON.stringify(value));
   },
 };
-
-export function createMemoryBackend(): StorageBackend {
-  const store = new Map<string, string>();
-  return {
-    get<T>(key: string): T | null {
-      const raw = store.get(key);
-      if (raw === undefined) return null;
-      try { return JSON.parse(raw) as T; } catch { return null; }
-    },
-    set<T>(key: string, value: T): void {
-      store.set(key, JSON.stringify(value));
-    },
-  };
-}

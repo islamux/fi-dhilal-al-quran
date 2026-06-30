@@ -2,7 +2,7 @@ import { useTheme } from '../hooks/useTheme';
 
 interface TabBarProps {
   activeTab: string;
-  setActiveTab: (tab: any) => void;
+  setActiveTab: (tab: 'overview' | 'verses' | 'chat' | 'stats') => void;
 }
 
 export function TabBar({ activeTab, setActiveTab }: TabBarProps) {

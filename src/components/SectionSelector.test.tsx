@@ -14,7 +14,6 @@ const mockSurah: Surah = {
   juzNumber: 1,
   startVerse: 1,
   endVerse: 286,
-  shortOverview: '',
   thematicPoints: [],
 };
 

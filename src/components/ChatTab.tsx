@@ -1,4 +1,4 @@
-import { useRef, useCallback } from 'react';
+import { useCallback } from 'react';
 import { motion } from 'motion/react';
 import { Search, X, ArrowLeft } from 'lucide-react';
 import { useTheme } from '../hooks/useTheme';
@@ -23,7 +23,6 @@ export function ChatTab({
   bottomRef, handleSearch, clearResults, onNavigateToSurah
 }: SearchTabProps) {
   const { isDarkMode } = useTheme();
-  const inputRef = useRef<HTMLInputElement>(null);
 
   const onSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
@@ -44,7 +43,6 @@ export function ChatTab({
         }`}>
           <Search className="w-5 h-5 text-gilded-gold shrink-0 ml-3" />
           <input
-            ref={inputRef}
             id="tafsir-search-input"
             type="text"
             placeholder="ابحث في كامل موسوعة في ظلال القرآن..."
@@ -88,7 +86,7 @@ export function ChatTab({
           </div>
         )}
 
-        {results.slice(0, 50).map((match, i) => (
+        {results.map((match, i) => (
           <div
             key={`${match.surahId}-${match.startVerse}-${i}`}
             id={`search-result-${i}`}
@@ -114,12 +112,6 @@ export function ChatTab({
             </div>
           </div>
         ))}
-
-        {results.length > 50 && (
-          <p className={`text-sm font-serif mb-1 ${isDarkMode ? 'text-brand-dark-mute' : 'text-brand-faded'}`}>
-            ... و{toArabicNumerals(results.length - 50)} نتيجة أخرى. استفسارك أكثر دقة لعرض نتائج أدق.
-          </p>
-        )}
 
         {!searching && results.length > 0 && (
           <p className={`text-xs ${isDarkMode ? 'text-brand-dark-mute/60' : 'text-brand-faded/60'}`}>

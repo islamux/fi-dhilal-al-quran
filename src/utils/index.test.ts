@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { toArabicNumerals } from '.';
 
 describe('toArabicNumerals', () => {
-  it('converts 0 to empty string', () => {
-    expect(toArabicNumerals(0)).toBe('');
+  it('converts 0 to ٠', () => {
+    expect(toArabicNumerals(0)).toBe('٠');
   });
 
   it('converts single digit', () => {

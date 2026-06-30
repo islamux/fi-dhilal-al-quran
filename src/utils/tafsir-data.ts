@@ -16,11 +16,13 @@ export function getTafsirText(
     return sections.map(s => s.text).join('\n\n');
   }
 
-  const verseNum = parseInt(range);
-  if (isNaN(verseNum)) return null;
+  const parts = range.split('-');
+  const startVerse = parseInt(parts[0]);
+  const endVerse = parts[1] ? parseInt(parts[1]) : startVerse;
+  if (isNaN(startVerse)) return null;
 
   const matched = sections.filter(
-    s => s.startVerse <= verseNum && s.endVerse >= verseNum
+    s => s.startVerse <= endVerse && s.endVerse >= startVerse
   );
   return matched.length > 0 ? matched.map(s => s.text).join('\n\n') : null;
 }

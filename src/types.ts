@@ -7,7 +7,6 @@ export interface Surah {
   juzNumber: number;
   startVerse: number;
   endVerse: number;
-  shortOverview: string;
   thematicPoints: string[];
 }
 

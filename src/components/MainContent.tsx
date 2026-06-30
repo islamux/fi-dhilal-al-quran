@@ -55,13 +55,6 @@ export function MainContent(props: MainContentProps) {
 
   return (
     <main className="flex-1 h-full flex flex-col overflow-hidden relative" id="main-reading-canvas">
-      <div className="absolute top-0 left-0 right-0 z-50 h-1 bg-black/10" id="progress-bar-track">
-        <div
-          className="h-full bg-gilded-gold transition-all duration-300 shadow-[0_0_8px_#c9a84c]"
-          style={{ width: activeTab === 'overview' ? '25%' : activeTab === 'verses' ? '65%' : activeTab === 'chat' ? '90%' : '100%' }}
-        />
-      </div>
-
       <Header
         selectedSurah={selectedSurah}
         setMobileSidebarOpen={setMobileSidebarOpen}

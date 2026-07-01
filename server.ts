@@ -10,7 +10,7 @@ const PORT = 3000;
 
 app.use(express.json());
 app.use(healthRouter);
-app.use('/api', userDataRouter);
+app.use(userDataRouter);
 
 async function startServer() {
   const isProd = process.env.NODE_ENV === 'production';

@@ -6,15 +6,23 @@ export function useDataSync() {
   const [syncPending, setSyncPending] = useState(syncBackend.isSyncPending());
 
   useEffect(() => {
-    syncBackend.initFromServer();
+    let cancelled = false;
 
-    localStorageBackend.onChange(() => syncBackend.notifyChange());
+    (async () => {
+      await syncBackend.initFromServer();
+      if (cancelled) return;
 
-    const unsub = syncBackend.onChange(() => {
-      setSyncPending(syncBackend.isSyncPending());
-    });
+      const unsubLocal = localStorageBackend.onChange(() => syncBackend.notifyChange());
 
-    return () => unsub();
+      const unsubSync = syncBackend.onChange(() => {
+        setSyncPending(syncBackend.isSyncPending());
+      });
+
+      return () => {
+        unsubLocal();
+        unsubSync();
+      };
+    })();
   }, []);
 
   return { syncPending };

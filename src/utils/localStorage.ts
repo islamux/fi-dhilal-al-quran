@@ -11,7 +11,10 @@ export const localStorageBackend = {
     this._callbacks.forEach(cb => { try { cb(key, value); } catch { /* swallow */ } });
   },
   _callbacks: [] as ChangeCallback[],
-  onChange(callback: ChangeCallback): void {
+  onChange(callback: ChangeCallback): () => void {
     this._callbacks.push(callback);
+    return () => {
+      this._callbacks = this._callbacks.filter(cb => cb !== callback);
+    };
   },
 };

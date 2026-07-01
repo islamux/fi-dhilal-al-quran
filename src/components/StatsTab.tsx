@@ -2,13 +2,14 @@ import { motion } from 'motion/react';
 import { BookmarkCheck, BookOpen, Trash2, Sparkles, Clock, CheckCircle, Download, Upload } from 'lucide-react';
 import { useTheme } from '../hooks/useTheme';
 import { toArabicNumerals } from '../utils';
+import { localStorageBackend } from '../utils/localStorage';
 import type { Bookmark, HistoryItem } from '../types';
 
 function handleExport(): void {
-  const bookmarks = JSON.parse(localStorage.getItem('thilal_bookmarks') || '[]');
-  const history = JSON.parse(localStorage.getItem('thilal_history') || '[]');
-  const completed = JSON.parse(localStorage.getItem('thilal_completed') || '[]');
-  const theme = localStorage.getItem('thilal_theme') || 'dark';
+  const bookmarks = localStorageBackend.get<unknown[]>('thilal_bookmarks') ?? [];
+  const history = localStorageBackend.get<unknown[]>('thilal_history') ?? [];
+  const completed = localStorageBackend.get<unknown[]>('thilal_completed') ?? [];
+  const theme = localStorageBackend.get<string>('thilal_theme') ?? 'dark';
 
   const data = { bookmarks, history, completed, theme, exportedAt: new Date().toISOString() };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -34,10 +35,10 @@ function handleImport(): void {
         alert('ملف غير صالح: البيانات لا تطابق التنسيق المطلوب');
         return;
       }
-      localStorage.setItem('thilal_bookmarks', JSON.stringify(data.bookmarks));
-      localStorage.setItem('thilal_history', JSON.stringify(data.history));
-      localStorage.setItem('thilal_completed', JSON.stringify(data.completed));
-      localStorage.setItem('thilal_theme', data.theme);
+      localStorageBackend.set('thilal_bookmarks', data.bookmarks);
+      localStorageBackend.set('thilal_history', data.history);
+      localStorageBackend.set('thilal_completed', data.completed);
+      localStorageBackend.set('thilal_theme', data.theme);
       window.location.reload();
     } catch {
       alert('ملف غير صالح: لا يمكن قراءة الملف');

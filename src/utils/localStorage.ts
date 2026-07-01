@@ -8,7 +8,7 @@ export const localStorageBackend = {
   },
   set<T>(key: string, value: T): void {
     localStorage.setItem(key, JSON.stringify(value));
-    this._callbacks.forEach(cb => cb(key, value));
+    this._callbacks.forEach(cb => { try { cb(key, value); } catch { /* swallow */ } });
   },
   _callbacks: [] as ChangeCallback[],
   onChange(callback: ChangeCallback): void {

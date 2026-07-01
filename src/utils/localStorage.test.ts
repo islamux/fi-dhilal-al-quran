@@ -18,6 +18,33 @@ describe('localStorageBackend', () => {
     localStorageBackend.set('key', 'new');
     expect(localStorageBackend.get('key')).toBe('new');
   });
+
+  it('fires single onChange callback on set', () => {
+    const calls: [string, unknown][] = [];
+    localStorageBackend.onChange((k, v) => calls.push([k, v]));
+    localStorageBackend.set('key', { x: 1 });
+    expect(calls).toEqual([['key', { x: 1 }]]);
+  });
+
+  it('fires all registered onChange callbacks', () => {
+    let count = 0;
+    localStorageBackend.onChange(() => count++);
+    localStorageBackend.onChange(() => count++);
+    localStorageBackend.set('k', 'v');
+    expect(count).toBe(2);
+  });
+
+  it('does not throw with zero callbacks', () => {
+    expect(() => localStorageBackend.set('k', 'v')).not.toThrow();
+  });
+
+  it('other callbacks still run when one throws', () => {
+    let count = 0;
+    localStorageBackend.onChange(() => { throw new Error('fail'); });
+    localStorageBackend.onChange(() => count++);
+    expect(() => localStorageBackend.set('k', 'v')).not.toThrow();
+    expect(count).toBe(1);
+  });
 });
 
 function createMemoryBackend() {

@@ -34,12 +34,12 @@ router.get('/api/user-data', async (req: Request, res: Response) => {
       .single();
 
     if (error) {
-      return res.status(500).json({ error });
+      return res.status(500).json({ error: error.message });
     }
 
     return res.json(data);
-  } catch (error) {
-    return res.status(500).json({ error });
+  } catch (err) {
+    return res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
   }
 });
 
@@ -64,12 +64,12 @@ router.put('/api/user-data', async (req: Request, res: Response) => {
       .single();
 
     if (error) {
-      return res.status(500).json({ error });
+      return res.status(500).json({ error: error.message });
     }
 
     return res.json(data);
-  } catch (error) {
-    return res.status(500).json({ error });
+  } catch (err) {
+    return res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
   }
 });
 
@@ -85,7 +85,7 @@ router.get('/api/user-data/export', async (req: Request, res: Response) => {
       .maybeSingle();
 
     if (error) {
-      return res.status(500).json({ error });
+      return res.status(500).json({ error: error.message });
     }
 
     if (!data) {
@@ -95,8 +95,8 @@ router.get('/api/user-data/export', async (req: Request, res: Response) => {
     res.setHeader('Content-Type', 'application/json');
     res.setHeader('Content-Disposition', 'attachment; filename="thilal-user-data.json"');
     return res.json(data);
-  } catch (error) {
-    return res.status(500).json({ error });
+  } catch (err) {
+    return res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
   }
 });
 
@@ -121,12 +121,12 @@ router.post('/api/user-data/import', async (req: Request, res: Response) => {
       .single();
 
     if (error) {
-      return res.status(500).json({ error });
+      return res.status(500).json({ error: error.message });
     }
 
     return res.json({ message: 'imported successfully', data });
-  } catch (error) {
-    return res.status(500).json({ error });
+  } catch (err) {
+    return res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
   }
 });
 

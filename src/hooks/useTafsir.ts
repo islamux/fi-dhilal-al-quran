@@ -1,14 +1,21 @@
 import { useState } from 'react';
 import type { Surah } from '../types';
-import { TAFSIR_DATA } from '../data/tafsir';
+import { SURAHS_WITH_TAFSIR } from '../data/tafsir-meta';
+import { loadTafsirData } from '../data/tafsir-loader';
 import { getTafsirText } from '../utils/tafsir-data';
 
 export function useTafsir() {
   const [tafsirText, setTafsirText] = useState<string | null>(null);
   const [verseRangeValue, setVerseRangeValue] = useState('كاملة');
 
-  const fetchTafsir = (surah: Surah, range = 'كاملة') => {
-    setTafsirText(getTafsirText(surah.id, TAFSIR_DATA, range));
+  const fetchTafsir = async (surah: Surah, range = 'كاملة') => {
+    setTafsirText(null);
+    try {
+      const data = await loadTafsirData();
+      setTafsirText(getTafsirText(surah.id, data, range));
+    } catch {
+      // tafsirText stays null — UI already handles "no tafsir" gracefully
+    }
   };
 
   return {
@@ -16,6 +23,6 @@ export function useTafsir() {
     verseRangeValue,
     setVerseRangeValue,
     fetchTafsir,
-    hasTafsir: (surahId: number) => !!TAFSIR_DATA[surahId],
+    hasTafsir: (surahId: number) => SURAHS_WITH_TAFSIR.has(surahId),
   };
 }

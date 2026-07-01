@@ -14,3 +14,7 @@ src/data/tafsir.ts
 .npmrc
 .env.example
 command-center/
+.superpowers/
+docs/superpowers/
+.vercel/
+supabase/

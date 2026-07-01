@@ -29,7 +29,7 @@
 
 ## 1. The Big Picture — What Are We Even Building?
 
-This app is called **في ظلال القرآن** ("Fi Thilal al-Quran" — "In the Shades of the Quran"). It's a digital reader for Sayyid Qutb's tafsir (commentary/exegesis) of the Quran.
+This app is called **في ظلال القرآن** ("Fi Dhilal al-Quran" — "In the Shades of the Quran"). It's a digital reader for Sayyid Qutb's tafsir (commentary/exegesis) of the Quran.
 
 But more importantly for you to understand: it's a **Single-Page Application (SPA)**.
 
@@ -194,14 +194,14 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined)
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [isDarkMode, setIsDarkMode] = useState(() => {
-    const saved = localStorage.getItem('thilal_theme')
+    const saved = localStorage.getItem('dhilal_theme')
     return saved ? saved === 'dark' : true // default: dark
   })
 
   const toggleTheme = () => {
     setIsDarkMode(prev => {
       const next = !prev
-      localStorage.setItem('thilal_theme', next ? 'dark' : 'light')
+      localStorage.setItem('dhilal_theme', next ? 'dark' : 'light')
       return next
     })
   }

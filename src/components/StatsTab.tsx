@@ -6,17 +6,17 @@ import { localStorageBackend } from '../utils/localStorage';
 import type { Bookmark, HistoryItem } from '../types';
 
 function handleExport(): void {
-  const bookmarks = localStorageBackend.get<unknown[]>('thilal_bookmarks') ?? [];
-  const history = localStorageBackend.get<unknown[]>('thilal_history') ?? [];
-  const completed = localStorageBackend.get<unknown[]>('thilal_completed') ?? [];
-  const theme = localStorageBackend.get<string>('thilal_theme') ?? 'dark';
+  const bookmarks = localStorageBackend.get<unknown[]>('dhilal_bookmarks') ?? [];
+  const history = localStorageBackend.get<unknown[]>('dhilal_history') ?? [];
+  const completed = localStorageBackend.get<unknown[]>('dhilal_completed') ?? [];
+  const theme = localStorageBackend.get<string>('dhilal_theme') ?? 'dark';
 
   const data = { bookmarks, history, completed, theme, exportedAt: new Date().toISOString() };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `thilal-user-data-${new Date().toISOString().slice(0, 10)}.json`;
+  a.download = `dhilal-user-data-${new Date().toISOString().slice(0, 10)}.json`;
   a.click();
   URL.revokeObjectURL(url);
 }
@@ -35,10 +35,10 @@ function handleImport(): void {
         alert('ملف غير صالح: البيانات لا تطابق التنسيق المطلوب');
         return;
       }
-      localStorageBackend.set('thilal_bookmarks', data.bookmarks);
-      localStorageBackend.set('thilal_history', data.history);
-      localStorageBackend.set('thilal_completed', data.completed);
-      localStorageBackend.set('thilal_theme', data.theme);
+      localStorageBackend.set('dhilal_bookmarks', data.bookmarks);
+      localStorageBackend.set('dhilal_history', data.history);
+      localStorageBackend.set('dhilal_completed', data.completed);
+      localStorageBackend.set('dhilal_theme', data.theme);
       window.location.reload();
     } catch {
       alert('ملف غير صالح: لا يمكن قراءة الملف');

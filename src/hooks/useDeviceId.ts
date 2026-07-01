@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { localStorageBackend } from '../utils/localStorage';
 
-const DEVICE_ID_KEY = 'thilal_device_id';
+const DEVICE_ID_KEY = 'dhilal_device_id';
 
 export function getDeviceId(): string {
   const existing = localStorageBackend.get<string>(DEVICE_ID_KEY);

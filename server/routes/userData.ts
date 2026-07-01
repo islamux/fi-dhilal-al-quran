@@ -93,7 +93,7 @@ router.get('/api/user-data/export', async (req: Request, res: Response) => {
     }
 
     res.setHeader('Content-Type', 'application/json');
-    res.setHeader('Content-Disposition', 'attachment; filename="thilal-user-data.json"');
+    res.setHeader('Content-Disposition', 'attachment; filename="dhilal-user-data.json"');
     return res.json(data);
   } catch (err) {
     return res.status(500).json({ error: err instanceof Error ? err.message : String(err) });

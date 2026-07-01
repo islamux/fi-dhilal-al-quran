@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { localStorageBackend } from '../utils/localStorage';
 
-const THEME_KEY = 'thilal_theme';
+const THEME_KEY = 'dhilal_theme';
 
 interface ThemeContextValue {
   isDarkMode: boolean;

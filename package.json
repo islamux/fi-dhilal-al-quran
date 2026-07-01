@@ -1,9 +1,5 @@
 {
-<<<<<<< HEAD
   "name": "fi-dhilal-al-quran",
-=======
-  "name": "fi-thilal-al-quran",
->>>>>>> 914ff22 (feat: production readiness — security headers, code-split tafsir 18MB→230KB, cleanup)
   "private": true,
   "version": "1.0.0",
   "type": "module",
@@ -20,12 +16,8 @@
     "@supabase/supabase-js": "^2.108.2",
     "@tailwindcss/vite": "^4.3.0",
     "@vitejs/plugin-react": "^6.0.2",
-<<<<<<< HEAD
     "express": "^4.22.2",
-=======
-    "express": "^5.2.1",
     "helmet": "^8.2.0",
->>>>>>> 914ff22 (feat: production readiness — security headers, code-split tafsir 18MB→230KB, cleanup)
     "lucide-react": "^1.17.0",
     "motion": "^12.40.0",
     "react": "^19.2.7",

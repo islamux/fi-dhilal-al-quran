@@ -9,9 +9,7 @@ const app = express();
 
 const PORT = parseInt(process.env.PORT || '3000', 10);
 
-<<<<<<< HEAD
 app.use(express.json());
-=======
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
@@ -26,7 +24,6 @@ app.use(helmet({
   },
   crossOriginEmbedderPolicy: false,
 }));
->>>>>>> 914ff22 (feat: production readiness — security headers, code-split tafsir 18MB→230KB, cleanup)
 app.use(healthRouter);
 app.use(userDataRouter);
 
@@ -59,15 +56,11 @@ async function startServer() {
   });
 }
 
-<<<<<<< HEAD
 if (process.env.VERCEL !== '1') {
-  startServer();
+  startServer().catch(err => {
+    console.error('Failed to start server:', err);
+    process.exit(1);
+  });
 }
 
 export default app;
-=======
-startServer().catch(err => {
-  console.error('Failed to start server:', err);
-  process.exit(1);
-});
->>>>>>> 914ff22 (feat: production readiness — security headers, code-split tafsir 18MB→230KB, cleanup)

@@ -15,9 +15,12 @@ export function useSearch() {
   const handleSearch = async (query: string) => {
     if (!query.trim()) return;
     setSearching(true);
-    const data = await loadTafsirData();
-    setResults(searchTafsir(query, data, surahNameMap));
-    setSearching(false);
+    try {
+      const data = await loadTafsirData();
+      setResults(searchTafsir(query, data, surahNameMap));
+    } finally {
+      setSearching(false);
+    }
   };
 
   const clearResults = () => {

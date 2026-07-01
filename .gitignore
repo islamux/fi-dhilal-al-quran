@@ -16,3 +16,5 @@ src/data/tafsir.ts
 command-center/
 .superpowers/
 docs/superpowers/
+.vercel/
+supabase/

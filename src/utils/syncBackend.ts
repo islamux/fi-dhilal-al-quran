@@ -1,12 +1,10 @@
 import { getDeviceId } from '../hooks/useDeviceId';
+import { localStorageBackend } from './localStorage';
 
 const SYNC_DEBOUNCE_MS = 1500;
 const MAX_RETRIES = 3;
 const SYNC_PENDING_KEY = 'thilal_sync_pending';
-
-function getApiBase(): string {
-  return '';
-}
+const API_PATH = '/api/user-data';
 
 async function putUserData(data: {
   bookmarks: unknown[];
@@ -18,7 +16,7 @@ async function putUserData(data: {
 
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
     try {
-      const res = await fetch(`${getApiBase()}/api/user-data`, {
+      const res = await fetch(API_PATH, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -28,7 +26,8 @@ async function putUserData(data: {
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       return true;
-    } catch {
+    } catch (err) {
+      if (!(err instanceof Error)) throw err;
       if (attempt < MAX_RETRIES - 1) {
         await new Promise(r => setTimeout(r, Math.pow(2, attempt) * 1000));
       }
@@ -40,31 +39,41 @@ async function putUserData(data: {
 async function fetchUserData(): Promise<Record<string, unknown> | null> {
   const deviceId = getDeviceId();
   try {
-    const res = await fetch(`${getApiBase()}/api/user-data`, {
+    const res = await fetch(API_PATH, {
       headers: { 'X-Device-Id': deviceId },
     });
     if (!res.ok) return null;
     return await res.json();
-  } catch {
-    return null;
+  } catch (err) {
+    if (err instanceof Error) return null;
+    throw err;
   }
 }
 
 function createSyncBackend() {
   let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+  let inFlight: Promise<void> | null = null;
   let callbacks: Array<() => void> = [];
+
+  async function sync(): Promise<void> {
+    const bookmarks = localStorageBackend.get<unknown[]>('thilal_bookmarks') ?? [];
+    const history = localStorageBackend.get<unknown[]>('thilal_history') ?? [];
+    const completed = localStorageBackend.get<number[]>('thilal_completed') ?? [];
+    const theme = localStorageBackend.get<string>('thilal_theme') ?? 'dark';
+
+    const success = await putUserData({ bookmarks, history, completed, theme });
+    localStorage.setItem(SYNC_PENDING_KEY, success ? 'false' : 'true');
+    callbacks.forEach(cb => cb());
+  }
 
   function notifyChange(): void {
     if (debounceTimer) clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(async () => {
-      const bookmarks = JSON.parse(localStorage.getItem('thilal_bookmarks') || '[]');
-      const history = JSON.parse(localStorage.getItem('thilal_history') || '[]');
-      const completed = JSON.parse(localStorage.getItem('thilal_completed') || '[]');
-      const theme = localStorage.getItem('thilal_theme') || 'dark';
 
-      const success = await putUserData({ bookmarks, history, completed, theme });
-      localStorage.setItem(SYNC_PENDING_KEY, success ? 'false' : 'true');
-      callbacks.forEach(cb => cb());
+    debounceTimer = setTimeout(async () => {
+      if (inFlight) await inFlight;
+      inFlight = sync();
+      await inFlight;
+      inFlight = null;
     }, SYNC_DEBOUNCE_MS);
   }
 
@@ -90,8 +99,11 @@ function createSyncBackend() {
     return localStorage.getItem(SYNC_PENDING_KEY) === 'true';
   }
 
-  function onChange(cb: () => void): void {
+  function onChange(cb: () => void): () => void {
     callbacks.push(cb);
+    return () => {
+      callbacks = callbacks.filter(c => c !== cb);
+    };
   }
 
   return { notifyChange, initFromServer, isSyncPending, onChange };

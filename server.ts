@@ -2,12 +2,15 @@ import express, { type Request, type Response } from 'express';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
 import healthRouter from './server/routes/health';
+import userDataRouter from './server/routes/userData';
 
 const app = express();
 
 const PORT = 3000;
 
+app.use(express.json());
 app.use(healthRouter);
+app.use(userDataRouter);
 
 async function startServer() {
   const isProd = process.env.NODE_ENV === 'production';

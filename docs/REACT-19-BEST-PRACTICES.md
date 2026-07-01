@@ -187,7 +187,7 @@ The 50ms delay is intentional — it prevents the UI from freezing on large quer
 2. toggleTheme() flips isDarkMode in context state
 3. ThemeProvider updates React context
 4. Every component using useTheme() re-renders
-5. localStorage.setItem('thilal_theme', 'dark'|'light') persists preference
+5. localStorage.setItem('dhilal_theme', 'dark'|'light') persists preference
 ```
 
 No CSS class toggle — the theme is applied via conditional Tailwind classes (`isDarkMode ? 'bg-dark' : 'bg-light'`).

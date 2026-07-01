@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import type { Bookmark } from '../types';
 import { localStorageBackend } from '../utils/localStorage';
 
-const BOOKMARKS_KEY = 'thilal_bookmarks';
+const BOOKMARKS_KEY = 'dhilal_bookmarks';
 
 export function useBookmarks() {
   const [bookmarks, setBookmarks] = useState<Bookmark[]>(() =>

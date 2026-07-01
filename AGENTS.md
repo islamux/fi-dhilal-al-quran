@@ -41,7 +41,7 @@
 - `@/` → project root (e.g., `@/src/types` works; `@/server.ts` works too)
 
 ## Theme
-- localStorage keys: `thilal_theme`, `thilal_bookmarks`, `thilal_history`, `thilal_completed`
+- localStorage keys: `dhilal_theme`, `dhilal_bookmarks`, `dhilal_history`, `dhilal_completed`
 - Default: dark mode. Brand accent: `#F27D26` (gilded gold)
 
 ## Workflow Rules (Mandatory)

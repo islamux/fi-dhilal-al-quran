@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import type { Surah, HistoryItem } from '../types';
 import { localStorageBackend } from '../utils/localStorage';
 
-const HISTORY_KEY = 'thilal_history';
-const COMPLETED_KEY = 'thilal_completed';
+const HISTORY_KEY = 'dhilal_history';
+const COMPLETED_KEY = 'dhilal_completed';
 
 export function useProgress() {
   const [readingHistory, setReadingHistory] = useState<HistoryItem[]>(() =>

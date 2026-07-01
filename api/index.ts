@@ -76,7 +76,7 @@ app.get('/api/user-data/export', async (req, res) => {
     if (!data) return res.status(404).json({ error: 'User data not found' });
 
     res.setHeader('Content-Type', 'application/json');
-    res.setHeader('Content-Disposition', 'attachment; filename="thilal-user-data.json"');
+    res.setHeader('Content-Disposition', 'attachment; filename="dhilal-user-data.json"');
     return res.json(data);
   } catch (err: any) {
     return res.status(500).json({ error: err.message ?? String(err) });

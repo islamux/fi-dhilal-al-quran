@@ -3,7 +3,7 @@ import { localStorageBackend } from './localStorage';
 
 const SYNC_DEBOUNCE_MS = 1500;
 const MAX_RETRIES = 3;
-const SYNC_PENDING_KEY = 'thilal_sync_pending';
+const SYNC_PENDING_KEY = 'dhilal_sync_pending';
 const API_PATH = '/api/user-data';
 
 async function putUserData(data: {
@@ -56,10 +56,10 @@ function createSyncBackend() {
   let callbacks: Array<() => void> = [];
 
   async function sync(): Promise<void> {
-    const bookmarks = localStorageBackend.get<unknown[]>('thilal_bookmarks') ?? [];
-    const history = localStorageBackend.get<unknown[]>('thilal_history') ?? [];
-    const completed = localStorageBackend.get<number[]>('thilal_completed') ?? [];
-    const theme = localStorageBackend.get<string>('thilal_theme') ?? 'dark';
+    const bookmarks = localStorageBackend.get<unknown[]>('dhilal_bookmarks') ?? [];
+    const history = localStorageBackend.get<unknown[]>('dhilal_history') ?? [];
+    const completed = localStorageBackend.get<number[]>('dhilal_completed') ?? [];
+    const theme = localStorageBackend.get<string>('dhilal_theme') ?? 'dark';
 
     const success = await putUserData({ bookmarks, history, completed, theme });
     localStorage.setItem(SYNC_PENDING_KEY, success ? 'false' : 'true');
@@ -82,16 +82,16 @@ function createSyncBackend() {
     if (!serverData) return;
 
     if (serverData.bookmarks) {
-      localStorage.setItem('thilal_bookmarks', JSON.stringify(serverData.bookmarks));
+      localStorage.setItem('dhilal_bookmarks', JSON.stringify(serverData.bookmarks));
     }
     if (serverData.history) {
-      localStorage.setItem('thilal_history', JSON.stringify(serverData.history));
+      localStorage.setItem('dhilal_history', JSON.stringify(serverData.history));
     }
     if (serverData.completed) {
-      localStorage.setItem('thilal_completed', JSON.stringify(serverData.completed));
+      localStorage.setItem('dhilal_completed', JSON.stringify(serverData.completed));
     }
     if (serverData.theme) {
-      localStorage.setItem('thilal_theme', serverData.theme as string);
+      localStorage.setItem('dhilal_theme', serverData.theme as string);
     }
   }
 

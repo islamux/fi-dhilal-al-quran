@@ -1,6 +1,6 @@
 <div align="center">
 <h1>في ظلال القرآن</h1>
-<p><strong>Fi Thilal al-Quran</strong> — A digital reader for Sayyid Qutb's monumental tafsir.</p>
+<p><strong>Fi Dhilal al-Quran</strong> — A digital reader for Sayyid Qutb's monumental tafsir.</p>
 </div>
 
 ## About

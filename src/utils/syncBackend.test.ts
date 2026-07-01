@@ -25,7 +25,7 @@ describe('syncBackend', () => {
     });
 
     it('returns true when sync pending flag is set', () => {
-      localStorage.setItem('thilal_sync_pending', 'true');
+      localStorage.setItem('dhilal_sync_pending', 'true');
       expect(syncBackend.isSyncPending()).toBe(true);
     });
   });
@@ -50,10 +50,10 @@ describe('syncBackend', () => {
         new Response(JSON.stringify({ bookmarks: [] }), { status: 200 }),
       );
 
-      localStorage.setItem('thilal_bookmarks', '[]');
-      localStorage.setItem('thilal_history', '[]');
-      localStorage.setItem('thilal_completed', '[]');
-      localStorage.setItem('thilal_theme', '"dark"');
+      localStorage.setItem('dhilal_bookmarks', '[]');
+      localStorage.setItem('dhilal_history', '[]');
+      localStorage.setItem('dhilal_completed', '[]');
+      localStorage.setItem('dhilal_theme', '"dark"');
 
       syncBackend.notifyChange();
 
@@ -94,7 +94,7 @@ describe('syncBackend', () => {
       await vi.advanceTimersByTimeAsync(1001);
       await vi.advanceTimersByTimeAsync(2001);
 
-      expect(localStorage.getItem('thilal_sync_pending')).toBe('true');
+      expect(localStorage.getItem('dhilal_sync_pending')).toBe('true');
     });
 
     it('clears sync pending flag on success', async () => {
@@ -105,7 +105,7 @@ describe('syncBackend', () => {
       syncBackend.notifyChange();
       await vi.advanceTimersByTimeAsync(2000);
 
-      expect(localStorage.getItem('thilal_sync_pending')).toBe('false');
+      expect(localStorage.getItem('dhilal_sync_pending')).toBe('false');
     });
   });
 
@@ -124,9 +124,9 @@ describe('syncBackend', () => {
 
       await syncBackend.initFromServer();
 
-      expect(JSON.parse(localStorage.getItem('thilal_bookmarks') || '[]')).toEqual(serverData.bookmarks);
-      expect(JSON.parse(localStorage.getItem('thilal_completed') || '[]')).toEqual(serverData.completed);
-      expect(localStorage.getItem('thilal_theme')).toBe('light');
+      expect(JSON.parse(localStorage.getItem('dhilal_bookmarks') || '[]')).toEqual(serverData.bookmarks);
+      expect(JSON.parse(localStorage.getItem('dhilal_completed') || '[]')).toEqual(serverData.completed);
+      expect(localStorage.getItem('dhilal_theme')).toBe('light');
     });
 
     it('does nothing when server returns no data', async () => {
@@ -134,11 +134,11 @@ describe('syncBackend', () => {
         new Response(null, { status: 404 }),
       );
 
-      localStorage.setItem('thilal_bookmarks', JSON.stringify([{ id: 'local' }]));
+      localStorage.setItem('dhilal_bookmarks', JSON.stringify([{ id: 'local' }]));
 
       await syncBackend.initFromServer();
 
-      expect(JSON.parse(localStorage.getItem('thilal_bookmarks') || '[]')).toEqual([{ id: 'local' }]);
+      expect(JSON.parse(localStorage.getItem('dhilal_bookmarks') || '[]')).toEqual([{ id: 'local' }]);
     });
 
     it('does not overwrite local data when server response is empty', async () => {
@@ -146,11 +146,11 @@ describe('syncBackend', () => {
         new Response(JSON.stringify({ bookmarks: null, history: null }), { status: 200 }),
       );
 
-      localStorage.setItem('thilal_bookmarks', JSON.stringify([{ id: 'local' }]));
+      localStorage.setItem('dhilal_bookmarks', JSON.stringify([{ id: 'local' }]));
 
       await syncBackend.initFromServer();
 
-      expect(JSON.parse(localStorage.getItem('thilal_bookmarks') || '[]')).toEqual([{ id: 'local' }]);
+      expect(JSON.parse(localStorage.getItem('dhilal_bookmarks') || '[]')).toEqual([{ id: 'local' }]);
     });
   });
 });

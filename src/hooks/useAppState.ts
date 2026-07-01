@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { SURAHS } from '../data/surahs';
 import type { Surah } from '../types';
 import { useBookmarks } from './useBookmarks';
+import { useDataSync } from './useDataSync';
 import { useProgress } from './useProgress';
 import { useTafsir } from './useTafsir';
 import { useSearch } from './useChat';
@@ -19,6 +20,7 @@ export function useAppState() {
   const { readingHistory, completedSurahs, addHistoryItem, toggleComplete } = useProgress();
   const { tafsirText, verseRangeValue, setVerseRangeValue, fetchTafsir, hasTafsir } = useTafsir();
   const { searchInput, setSearchInput, results, searching, bottomRef, handleSearch, clearResults } = useSearch();
+  const { syncPending } = useDataSync();
 
   useEffect(() => {
     fetchTafsir(selectedSurah, 'كاملة');
@@ -46,6 +48,7 @@ export function useAppState() {
     readingHistory, completedSurahs, addHistoryItem, toggleComplete,
     tafsirText, verseRangeValue, setVerseRangeValue, fetchTafsir, hasTafsir,
     searchInput, setSearchInput, results, searching, bottomRef, handleSearch, clearResults,
+    syncPending,
     handleNavigateToSurah,
   };
 }

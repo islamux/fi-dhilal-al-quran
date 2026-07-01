@@ -29,6 +29,7 @@ export default defineConfig(() => {
         },
         workbox: {
           globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+          maximumFileSizeToCacheInBytes: 25 * 1024 * 1024,
           runtimeCaching: [
             {
               urlPattern: /^\/api\/.*/i,
@@ -45,6 +46,15 @@ export default defineConfig(() => {
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),
+      },
+    },
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            tafsir: ['@/src/data/tafsir'],
+          },
+        },
       },
     },
     server: {

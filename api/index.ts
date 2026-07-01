@@ -55,7 +55,7 @@ app.put('/api/user-data', async (req, res) => {
       completed: completed ?? [],
       theme: theme ?? 'dark',
       updated_at: new Date().toISOString(),
-    }).select().single();
+    }, { onConflict: 'device_id' }).select().single();
 
     if (error) return res.status(500).json({ error: error.message });
     return res.json(data);
@@ -98,7 +98,7 @@ app.post('/api/user-data/import', async (req, res) => {
       completed: completed ?? [],
       theme: theme ?? 'dark',
       updated_at: new Date().toISOString(),
-    }).select().single();
+    }, { onConflict: 'device_id' }).select().single();
 
     if (error) return res.status(500).json({ error: error.message });
     return res.json({ message: 'imported successfully', data });

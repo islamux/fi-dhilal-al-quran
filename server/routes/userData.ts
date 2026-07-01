@@ -59,7 +59,7 @@ router.put('/api/user-data', async (req: Request, res: Response) => {
         completed: completed ?? [],
         theme: theme ?? 'dark',
         updated_at: new Date().toISOString(),
-      })
+      }, { onConflict: 'device_id' })
       .select()
       .single();
 
@@ -116,7 +116,7 @@ router.post('/api/user-data/import', async (req: Request, res: Response) => {
         completed: completed ?? [],
         theme: theme ?? 'dark',
         updated_at: new Date().toISOString(),
-      })
+      }, { onConflict: 'device_id' })
       .select()
       .single();
 

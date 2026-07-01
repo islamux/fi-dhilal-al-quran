@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { Surah } from '../types';
-import { TAFSIR_DATA, SURAHS_WITH_TAFSIR } from '../data/tafsir';
+import { TAFSIR_DATA } from '../data/tafsir';
 import { getTafsirText } from '../utils/tafsir-data';
 
 export function useTafsir() {
@@ -16,6 +16,6 @@ export function useTafsir() {
     verseRangeValue,
     setVerseRangeValue,
     fetchTafsir,
-    hasTafsir: (surahId: number) => SURAHS_WITH_TAFSIR.has(surahId),
+    hasTafsir: (surahId: number) => !!TAFSIR_DATA[surahId],
   };
 }

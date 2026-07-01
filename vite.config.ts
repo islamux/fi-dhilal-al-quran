@@ -51,8 +51,8 @@ export default defineConfig(() => {
     build: {
       rollupOptions: {
         output: {
-          manualChunks: {
-            tafsir: ['@/src/data/tafsir'],
+          manualChunks(id: string) {
+            if (id.includes('/src/data/tafsir')) return 'tafsir';
           },
         },
       },

@@ -1,1273 +1,951 @@
 # رحلة في ظلال القرآن — App Lifecycle Walkthrough
 
-> **For:** Junior developers who know basic HTML, CSS, and JavaScript but have never touched React.
+> **For:** Junior developers who know basic HTML, CSS, and JavaScript but have never touched React or a Next.js app.
 >
-> **What this is:** A step-by-step tour of the app's journey — from the moment your browser hits the server all the way through rendering, clicking, searching, and building for production.
+> **What this is:** A step-by-step tour of the app's journey — from `next build` to a request like `/surah/2`, through static generation, React hydration, clicking, searching, the unified API, and the PWA service worker.
 >
-> **Reference:** For deeper dives into React patterns used here, see [`docs/REACT-19-BEST-PRACTICES.md`](./REACT-19-BEST-PRACTICES.md).
+> **Reference:** For deeper dives into React patterns used here, see [`docs/REACT-19-BEST-PRACTICES.md`](./REACT-19-BEST-PRACTICES.md). For how the app is tested, see [`docs/TESTING.md`](./TESTING.md).
 
 ---
 
 ## Table of Contents
 
-1. [The Big Picture](#1-the-big-picture--what-are-we-even-building)
-2. [The Starting Line — index.html → React Boot](#2-the-starting-line--indexhtml--react-boot)
-3. [Safety Nets & Global Settings](#3-safety-nets--global-settings)
-4. [The Layout — Three Columns](#4-the-layout--three-columns)
-5. [The Sidebar — Finding a Surah](#5-the-sidebar--finding-a-surah)
-6. [The Tafsir Data](#6-the-tafsir-data--where-does-it-live)
-7. [The Engine Room — Hooks](#7-the-engine-room--hooks)
-8. [Reading Tafsir — Click → Text](#8-reading-tafsir--click--text-on-screen)
-9. [Search — Full-Text](#9-search--full-text-across-all-tafsir)
-10. [Styling — Tailwind + Dark Mode](#10-styling--tailwind-css-v4--dark-mode)
-11. [Build & Deploy](#11-build--deploy--what-pnpm-run-build-does)
-12. [Glossary](#12-glossary-of-react-terms)
-13. [React Patterns](#13-react-patterns-youll-see-on-every-page)
-14. [Common Mistakes](#14-common-mistakes--what-to-watch-for)
+1. [The Big Picture — A Hybrid App](#1-the-big-picture--a-hybrid-app)
+2. [The Two Worlds — Server & Client](#2-the-two-worlds--server-components--client-components)
+3. [The Start Line — Build Time & SSG](#3-the-start-line--build-time--static-site-generation)
+4. [A Real Request — Visiting `/surah/2`](#4-a-real-request--visiting-surah2)
+5. [Hydration — The Page Comes Alive](#5-hydration--the-page-comes-alive)
+6. [The Shell — Layout & Client Navigation](#6-the-shell--layout--client-side-navigation)
+7. [SurahReader — The Tab Interface](#7-surahreader--the-tab-interface)
+8. [The Tafsir Data Pipeline](#8-the-tafsir-data-pipeline)
+9. [Persistence — localStorage & Supabase Sync](#9-persistence--localstorage--supabase-sync)
+10. [The Unified API — Route Handlers](#10-the-unified-api--route-handlers)
+11. [PWA — Offline & Installation](#11-pwa--offline--installation)
+12. [Scripts & Tooling](#12-scripts--tooling)
+13. [Glossary of Framework Terms](#13-glossary-of-framework-terms)
+14. [React Patterns You'll See on Every Page](#14-react-patterns-youll-see-on-every-page)
+15. [Common Mistakes — What to Watch For](#15-common-mistakes--what-to-watch-for)
+16. [The Full Lifecycle](#16-the-full-lifecycle)
 
 ---
 
-## 1. The Big Picture — What Are We Even Building?
+## 1. The Big Picture — A Hybrid App
 
-This app is called **في ظلال القرآن** ("Fi Dhilal al-Quran" — "In the Shades of the Quran"). It's a digital reader for Sayyid Qutb's tafsir (commentary/exegesis) of the Quran.
+This app is called **في ظلال القرآن** ("Fi Dhilal al-Quran" — "In the Shades of the Quran"). It's a digital reader for Sayyid Qutb's tafsir (commentary/exegesis) of the Quran, built with **Next.js** (the React framework for the web).
 
-But more importantly for you to understand: it's a **Single-Page Application (SPA)**.
+### What kind of app is it, exactly?
 
-### What's an SPA?
+If you've only ever seen two kinds of websites — plain "request HTML → get HTML" sites, and single-page apps (SPAs) where an empty HTML shell is filled in entirely by JavaScript — this app is a **hybrid** that takes the best of both:
 
-You're used to traditional websites where every click on a link causes the browser to request a new HTML page. The page goes blank, then the new content appears. That's a **Multi-Page Application**.
+| Concern | Classic SPA | This Next.js app |
+|---------|-------------|------------------|
+| First paint | Needs to download + run all JS first | **Pre-rendered HTML** arrives instantly from a static file |
+| SEO | Search engines see an empty shell | Full Arabic tafsir text is **already in the HTML** |
+| Clicking around | One big in-memory app | **Client-side navigation** with no full-page reloads |
+| API | Separate backend server | **Route Handlers** — same code runs in dev, prod, and Vercel |
+| Offline | Manual, often missing | **Service worker (PWA)** pre-caches the app + runtime caches pages/API |
+| "Login" | None needed | **Device-ID based** user-data sync to Supabase |
 
-In an SPA, the browser loads **one HTML page once**, and then JavaScript takes over. When you click something, JavaScript updates what you see on screen without asking the server for a new page. No flashing, no blank white page, no waiting.
-
-Think of it like a **car dashboard vs. a paper map**:
-- **Traditional website (paper map):** To see a different area, you need an entirely new map.
-- **SPA (digital dashboard):** The screen refreshes instantly based on what you touch, but the car itself keeps running. You never need a new car.
+Next.js 16 statically generates all the reading pages at **build time** (Static Site Generation, SSG). When a visitor asks for `/surah/2`, the server — or, usually, a CDN — hands back a fully-formed HTML page with the surah's tafsir text already inside it. Then React takes over in the browser and turns that static page into a living, interactive app.
 
 ### What's inside this app?
 
 ```
-┌─────────────┐     ┌──────────────────────────────────────────────┐
-│  Browser     │     │  Express Server (Node.js)                    │
-│  (React app) │◄────│  - Serves index.html                        │
-│              │     │  - Serves JS/CSS assets                     │
-│              │     │  - Has one API: GET /api/health             │
-└─────────────┘     └──────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────┐
+│                            Browser                               │
+│                                                                  │
+│  ┌─────────────────────┐   ┌──────────────────────────────────┐  │
+│  │   Service Worker    │   │   React app (hydrated)           │  │
+│  │   (PWA, offline)    │◄──│   WorkstationShell               │  │
+│  └──────────▲──────────┘   │   └─ Sidebar · SurahReader       │  │
+│             │              │      ├─ Overview / Verses / Chat │  │
+│             │              │      └─ Stats tabs               │  │
+└─────────────┼──────────────┴───────────────┬──────────────────┘  │
+              │                              │
+              ▼ fetch / navigations          ▼ fetch /api/*
+┌──────────────────────────────────────────────────────────────────┐
+│                         Next.js server                           │
+│                                                                  │
+│  • Static files: pre-rendered /surah/* HTML (SSG ×114) + "/"     │
+│  • Route Handlers: /api/health, /api/user-data{,/export,/import} │
+│  • PWA artifacts: /manifest.webmanifest, /sw.js                  │
+└──────────────────────────────────────────────────────────────────┘
 ```
 
-**No database.** **No external APIs.** **No AI.** All the tafsir content (~18MB) is bundled inside the JavaScript that the browser downloads. This is what "fully offline" means — once the page loads, you can disconnect the internet and keep reading.
+**No database for reading.** All the tafsir content — 110 surahs, 305 verse-range sections, ~19MB of Arabic text — is local. The pages are generated from it at build time, and searching happens entirely in the browser over the same local data.
 
-### What makes this different from a "normal" website?
-
-| Aspect | Traditional Website | This SPA |
-|--------|-------------------|----------|
-| Page loads | Every click = new page | One load, then instant updates |
-| Who does the work? | Server builds HTML, sends it | Browser runs JavaScript |
-| Content source | Database on server | A local JavaScript file (~18MB) |
-| Feel | Flashy, slow transitions | Smooth, app-like |
+**One database for user data.** Supabase stores each "device's" bookmarks, reading history, completed surahs, and theme — synced over the unified API. No accounts, no passwords; a `dhilal_device_id` in localStorage is the key.
 
 ---
 
-## 2. The Starting Line — index.html → React Boot
+## 2. The Two Worlds — Server Components & Client Components
 
-Your browser journey begins with a URL. The Express server receives the request and sends back `index.html`.
+Modern Next.js (the App Router) runs your React components in **two different places**. This is the single most important mental model for this codebase.
 
-### Step 1: The server sends a nearly-empty HTML page
+### Server components (the default)
 
-Open `index.html` at the project root. It looks like this (simplified):
+Any component that does **not** say `'use client'` at the top is a **Server Component**. It runs only on the server (at build time for static pages, or at request time for dynamic pages). It can:
 
-```html
-<!DOCTYPE html>
+- `await` things directly (see `surah/[id]/page.tsx` doing `await params`)
+- read files and Node/`process.env` securely
+- render Arabic text straight into HTML
+
+**The browser never sees the source of a server component** — it only receives the HTML/streamed output.
+
+### Client components (`'use client'`)
+
+The moment you write `'use client'` at the top of a file, that component **also ships to the browser as JavaScript**, where it can:
+
+- use hooks (`useState`, `useEffect`, `useRouter`, `useSearchParams`, …)
+- respond to clicks, manage tabs, handle input
+- read `localStorage` (carefully — see Chapter 9)
+
+A client component is allowed to *import and render* a server component (as children), but a server component cannot pass event handlers into a client component.
+
+### Where each piece of this app lives
+
+```
+next build / request time (server)            browser (client)
+──────────────────────────────                 ──────────────
+src/app/layout.tsx         ──────────────►     <html lang="ar" dir="rtl">
+src/app/(reader)/layout.tsx                       providers + shell
+src/app/(reader)/page.tsx                         → <SurahReader/>  (client)
+src/app/(reader)/surah/[id]/page.tsx
+   ├─ await params
+   ├─ loadTafsirData()   (build time)
+   ├─ getTafsirText()    (build time)
+   └─ JSON-LD, metadata                        src/components/SurahReader.tsx ('use client')
+src/app/api/*/route.ts  (request time)           src/components/WorkstationShell.tsx ('use client')
+src/lib/supabase.ts      (server only)           src/components/{Sidebar,TabBar,OverviewTab,...}
+                                                 src/context/*, src/hooks/*
+```
+
+**Rule of thumb you'll see applied throughout:** keep everything that can run on the server there (data loading, metadata, API), and push only what *must* interact with the user into `'use client'` components.
+
+### The nesting of layouts
+
+Like a Matryoshka doll, every route is wrapped by its ancestor layouts:
+
+```
+<RootLayout>                          src/app/layout.tsx        (server)
+  <ErrorBoundary>                     client class component
+    <ThemeProvider>                   client context
+      <ReaderLayout>                  src/app/(reader)/layout.tsx (server)
+        <AppStateProvider>            client context
+          <WorkstationShell>          client shell (sidebar etc.)
+            <SurahReader/>            client page content
+```
+
+This chain is how `useAppState()` and `useTheme()` are available to every component that renders inside the app (Chapters 5–7).
+
+---
+
+## 3. The Start Line — Build Time & Static Site Generation
+
+If you want to understand how `https://site/surah/2` gets its content, you have to understand what happens when a developer runs:
+
+```bash
+pnpm run build   # → next build --webpack
+```
+
+This is the moment the app "pre-commits" its content. Everything tafsir-related is decided here.
+
+### Step 1: Next discovers the routes
+
+Next.js derives routes from the **file system** under `src/app/`. Every `page.tsx` is a page, every `layout.tsx` is a wrapper, every `route.ts` is an API endpoint, every special file (`manifest.ts`, `sitemap.ts`, `robots.ts`, `sw.ts`) is metadata or infrastructure.
+
+```
+src/app/
+├── layout.tsx                  → wraps the whole app
+├── globals.css                 → Tailwind v4 + design tokens
+├── manifest.ts                 → web app manifest (PWA)
+├── sitemap.ts                  → /sitemap.xml
+├── robots.ts                   → /robots.txt
+├── sw.ts                       → service worker SOURCE (built to public/sw.js)
+├── api/
+│   ├── health/route.ts         → GET /api/health
+│   └── user-data/
+│       ├── route.ts            → GET/PUT /api/user-data
+│       ├── export/route.ts     → GET /api/user-data/export
+│       └── import/route.ts     → POST /api/user-data/import
+└── (reader)/                   ← route group (adds no URL segment)
+    ├── layout.tsx              → AppStateProvider + WorkstationShell
+    ├── page.tsx                → serves "/"
+    └── surah/[id]/page.tsx     → serves /surah/2, /surah/3, …
+```
+
+> **What's a route group?** A folder in parentheses, `(reader)`, groups files that share a layout **without** adding anything to the URL. `(reader)/page.tsx` is the URL `/`, not `/reader`.
+
+### Step 2: `generateStaticParams()` — "make every surah page"
+
+The per-surah page exports a function that tells Next which routes to pre-build (see `src/app/(reader)/surah/[id]/page.tsx`):
+
+```ts
+export async function generateStaticParams() {
+  return SURAHS.map(s => ({ id: String(s.id) }));
+}
+```
+
+`SURAHS` has all 114 surahs, so Next **builds the exact same page component 114 times** — once for each surah id. On the server's build machine (not the browser), each run:
+
+```ts
+const { id } = await params;                 // e.g. "2"
+
+const surah = SURAHS.find(s => s.id === Number(id));
+if (!surah) notFound();                      // unknown /surah/999 → 404 page
+
+const data = await loadTafsirData();         // parses the ~19MB tafsir.ts ONCE, server-side
+const tafsirText = getTafsirText(surah.id, data, 'كاملة');   // slices just surah 2's text
+```
+
+Then it returns `<SurahReader surah={surah} initialTafsirText={tafsirText} />`. The fully-rendered HTML — **including Al-Baqarah's complete Arabic tafsir** — is written to disk as a static `.html` file. This is what makes the app SEO-friendly: the text is in the markup, not waiting for JavaScript.
+
+The same thing happens for `/` — `(reader)/page.tsx` builds Al-Fatihah the same way (`SURAHS[0]`).
+
+### Step 3: Per-page metadata is generated too
+
+`generateMetadata()` runs for each surah and returns `<title>تفسير سورة البقرة — في ظلال القرآن</title>`, a description, a canonical URL, and OpenGraph tags. A JSON-LD `Book` schema block is also inlined into each page's HTML — this is the structured data that makes search-engine result snippets look rich.
+
+### Step 4: The build outputs
+
+```
+.next/                        ← build artifacts (gitignored)
+├── server/                   ← compiled server + RSC renderer
+├── static/                   ← HTML/CSS/JS chunks
+│   ├── 2/f39a…/surah/2.html  ← pre-rendered HTML for surah 2 (full Arabic text inside!)
+│   ├── …                     ← 113 more surah pages + "/"
+│   └── chunks/…tafsir*.js    ← the ~19MB tafsir data as a LAZY chunk (only fetched on demand)
+public/sw.js                  ← service worker built from src/app/sw.ts by @serwist/next
+public/sitemap.xml, robots.txt, manifest.webmanifest
+```
+
+Two important "relocations" to notice:
+
+1. **The tafsir text ships inside the page HTML** for whatever surah you visit. The 19MB file itself is **not** downloaded to read a page — it stays server-side at build time and only becomes a *lazy* browser chunk for the cases where the whole dataset is needed (full-text search, or re-slicing a verse range — Chapter 8).
+2. **The service worker** is compiled from `src/app/sw.ts` into `public/sw.js` by `@serwist/next` during the same build (Chapters 11–12).
+
+> **Why `--webpack`?** See Chapter 12 — `@serwist/next` only writes `public/sw.js` through Next's webpack build hook. Turbopack bypasses it, so the scripts pass `--webpack` on purpose.
+
+---
+
+## 4. A Real Request — Visiting `/surah/2`
+
+The static files exist. Now a user opens the browser and types the URL. Here's the full journey.
+
+### Step 1: The server answers without running your code
+
+For a statically generated page, the runtime server (Vercel, or `next start` locally) does **not** re-run `SurahPage` at request time. It looks up the matching static file and streams it back: `200 OK` with the complete HTML document.
+
+Your React code *already* ran — at build time. That's the definition of SSG.
+
+### Step 2: The root layout wraps everything
+
+Every page response is assembled inside `src/app/layout.tsx`:
+
+```tsx
 <html lang="ar" dir="rtl">
-<head>
-  <meta charset="UTF-8" />
-  <title>في ظلال القرآن</title>
-  <!-- Google Fonts: Amiri, Tajawal, Playfair Display, JetBrains Mono -->
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <!-- ... font links ... -->
-</head>
-<body>
-  <div id="root"></div>
-  <script type="module" src="/src/main.tsx"></script>
-</body>
-</html>
 ```
 
-Notice the `<div id="root"></div>` — it's completely empty. The entire app — the sidebar, the surah list, the tafsir text — will be created inside this empty div by JavaScript.
+So the document is **RTL by default**, and the four Google Fonts (Amiri for the tafsir reading face, Tajawal for UI, Playfair Display for decorative serif, JetBrains Mono for those "PART ١/٢٣/..." mono labels) are linked here. `metadataBase` comes from `SITE_URL` (env `SITE_URL`, falling back to `https://fi-dhilal-al-quran.vercel.app`), and the `<title>` template makes every surah title read `تفسير سورة البقرة — في ظلال القرآن`.
 
-The `<script>` tag loads `src/main.tsx`. This is the **entry point** of the entire React application.
+Inside `<body>`, the `ErrorBoundary` and `ThemeProvider` are already in the markup — they're Server-Component-compatible client components whose initial HTML is rendered server-side and then hydrated (Chapter 5).
 
-### Step 2: `main.tsx` runs
+### Step 3: The reader layout provides the shell state
 
-Open `src/main.tsx`:
+`src/app/(reader)/layout.tsx` mounts two client providers around the page:
 
 ```tsx
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import App from './App.tsx'
-import { ThemeProvider } from './context/ThemeContext.tsx'
-import { ErrorBoundary } from './components/ErrorBoundary.tsx'
-import './index.css'
-
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <ErrorBoundary>
-      <ThemeProvider>
-        <App />
-      </ThemeProvider>
-    </ErrorBoundary>
-  </StrictMode>
-)
+<AppStateProvider>          // useAppState(): bookmarks, history, search, sync state…
+  <WorkstationShell>        // sidebar + brand strip + the page itself
+    {children}              // ← the output of surah/[id]/page.tsx
+  </WorkstationShell>
+</AppStateProvider>
 ```
 
-Let's break this line by line:
+The `WorkstationShell` draws the three-column frame — decorative BrandStrip on the far side, the Sidebar with the surah index, and a flexible column where the page content lands. On mobile the sidebar becomes a slide-in drawer.
 
-1. **`createRoot(document.getElementById('root')!)`** — React looks for the empty `<div id="root">` in the HTML and claims it. This is React's territory now. The `!` is TypeScript saying "trust me, this exists".
+### Step 4: The page renders with data already in hand
 
-2. **`.render(...)`** — Tells React: "put this component tree inside that div".
-
-3. **`<StrictMode>`** — A development-only wrapper that checks for common mistakes. In production, it does nothing special.
-
-### What's "component tree"?
-
-A React app is a **tree of components**. Components are like HTML elements but smarter. Instead of writing `<div>`, you write `<App />`. Each component is a function that returns what should appear on screen.
-
-The tree from `main.tsx` looks like:
+The `SurahPage` server component produces `<SurahReader surah={…} initialTafsirText={…} />` plus the JSON-LD script. Because `SurahReader` is a client component, its **server-rendered HTML** is what the user sees before any JavaScript runs:
 
 ```
-<StrictMode>
-  └── <ErrorBoundary>
-        └── <ThemeProvider>
-              └── <App />
+┌──────────────────────────────────────────────────────────────────┐
+│  فِي ظِلَالِ الْقُرْآن        ◐  ⭐ Mark Surah   ✔ Mark Study    │
+│  PART ١                                                          │
+│  ┌────────────────────────────────────────────────────────────┐  │
+│  │ Surah 2 · Juz 1                                           │  │
+│  │ البقرة                                                     │  │
+│  │ MEDINAN REVELATION · ٢٨٦ VERSE(S)                          │  │
+│  └────────────────────────────────────────────────────────────┘  │
+│  نظرة عامة │ استعراض الآيَات │ بحث في الظلال │ سجل المُدارسة     │
+│  ┌────────────────────────────────────────────────────────────┐  │
+│  │ TAFSIR AL-QUTB · SURAH ٢                                  │  │
+│  │ الم ﴿١﴾ ذلك الكتاب لا ريب فيه...                           │  │
+│  │ يبدأ السياق القرآني في سورة البقرة بهذه الحروف المقطعة…     │  │
+│  └────────────────────────────────────────────────────────────┘  │
+│  DHILAL AL-QURAN • STUDIOS                                       │
+└──────────────────────────────────────────────────────────────────┘
 ```
 
-React will call these functions in order, from outside to inside, collecting the HTML they produce, and then insert everything into the `<div id="root">`.
+### Step 5: The dynamic params safety net
 
-### What happens visually?
+The page also sets `export const dynamicParams = true`. That, plus `if (!surah) notFound()`, means:
 
-The user sees nothing for a split second, then the full layout appears: sidebar on the right, a decorative strip on the left, and the main content area showing Surah Al-Fatihah's tafsir.
+- All 114 real surahs are served from pre-rendered static files.
+- A garbage URL like `/surah/999` (or `/surah/abc`) hits the built-in `notFound()` handler and returns a proper `404` page — one code path, no crash.
 
-That instant appearance is what we call **"the first paint"** or **"initial render"** in React.
+> **Note — RTL layout:** because the document is `dir="rtl"`, you'll see CSS use `start`/`end`-aware properties and the sidebar fixed to the *right* (`right-0` in `Sidebar.tsx`) rather than `left`. Mind that when you touch layout styles.
 
 ---
 
-## 3. Safety Nets & Global Settings
+## 5. Hydration — The Page Comes Alive
 
-Before diving into `App.tsx` and the fun visual stuff, let's look at the two wrappers that protect and power every component.
+At this point the page is beautiful static HTML. But nothing *responds* yet — no clicks, no tabs, no theme toggle. Time for hydration.
 
-### ErrorBoundary — The Safety Net
+### What hydration is
 
-Open `src/components/ErrorBoundary.tsx`. You'll notice it's a **class component**, not a function. React requires error boundaries to be class components (it's a technical limitation).
+Every client component you write gets compiled into JavaScript. Alongside the HTML, Next serves that JavaScript plus a **React Server Component (RSC) payload** — a compact description of the component tree. The browser downloads these, and **React 19 walks the existing DOM and attaches itself to it** — attaching event listeners, running `useEffect`s, and taking ownership of the components. No blank flash, no re-render of everything from scratch: it "resumes" where the server left off.
 
-```tsx
-class ErrorBoundary extends React.Component<Props, State> {
-  state = { hasError: false, error: null }
+Think of it like the difference between a *photograph* of a car dashboard and sitting in the driver's seat. The HTML was the photograph; after hydration you're holding the wheel.
 
-  static getDerivedStateFromError(error: Error) {
-    return { hasError: true, error }
-  }
-
-  componentDidCatch(error: Error, info: React.ErrorInfo) {
-    console.error('ErrorBoundary caught:', error, info)
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return <ErrorUI error={this.state.error} />
-    }
-    return this.props.children
-  }
-}
+```
+Static HTML arrives ──► React 19 hydrates ──► Interactive app
+   (looks right)          (becomes alive)        (responds)
 ```
 
-**What it does:** If any component inside it throws an error during rendering (e.g., you try to access `something.undefined.property`), React would normally crash and show a white screen. ErrorBoundary catches that crash and instead shows a nice Arabic error message with a "إعادة تحميل" (Reload) button.
+### Step-by-step after a reload on `/surah/2`
 
-**Think of it like:** The airbag in a car. You hope you never need it, but you're glad it's there.
-
-### ThemeProvider — The Global Settings
-
-Open `src/context/ThemeContext.tsx`. This uses React's **Context** feature.
-
-**What's Context?** Normally, data flows from parent to child via **props** (like function arguments). If you need to pass something to a deeply nested component, you'd have to thread it through every component in between ("prop drilling"). Context creates a **secret tunnel** — a component can broadcast a value, and any component anywhere below can read it directly.
-
-```tsx
-const ThemeContext = createContext<ThemeContextType | undefined>(undefined)
-
-export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    const saved = localStorage.getItem('dhilal_theme')
-    return saved ? saved === 'dark' : true // default: dark
-  })
-
-  const toggleTheme = () => {
-    setIsDarkMode(prev => {
-      const next = !prev
-      localStorage.setItem('dhilal_theme', next ? 'dark' : 'light')
-      return next
-    })
-  }
-
-  return (
-    <ThemeContext.Provider value={{ isDarkMode, toggleTheme }}>
-      {children}
-    </ThemeContext.Provider>
-  )
-}
-```
-
-**What's happening here:**
-1. `useState` remembers whether we're in dark mode. It checks `localStorage` first.
-2. `toggleTheme` flips the value and saves it back to `localStorage`.
-3. Any component can call `useTheme()` and get `{ isDarkMode, toggleTheme }` — no props needed.
-
-**Analogy:** Think of `ThemeProvider` as the building's main electrical panel. It distributes "dark mode power" to every room (component) through hidden wiring (Context). Each room has a light switch (`useTheme()`) that reads the current state.
-
-> **Deeper dive:** See the Context section in [`docs/REACT-19-BEST-PRACTICES.md`](./REACT-19-BEST-PRACTICES.md) for more patterns.
+1. **`ThemeProvider` mounts.** It starts in dark mode (`useState(true)`) and then reads `dhilal_theme` from localStorage in a `useEffect` — see Chapter 9 for why this two-phase approach is mandatory under SSR.
+2. **`useAppState()` initializes.** `AppStateProvider` composes the bookmark hook, progress hook (history + completed), search hook, and data-sync hook, plus local UI state (filters, mobile sidebar toggle).
+3. **`SuraReader` picks its initial tab** from the query string: `?tab=overview|verses|chat|stats`, defaulting to `overview`. (A search result elsewhere in the app can navigate here with `?tab=verses` so the user lands on the verses view.)
+4. **Data sync starts.** `useDataSync()` kicks off `syncBackend.initFromServer()` — a `GET /api/user-data` with the device header, which pulls this device's bookmarks/history/theme down from Supabase into localStorage (Chapters 9–10).
+5. **The service worker registers.** The Serwist worker claims the page and controls subsequent fetches (Chapter 11), so the next navigation can be served straight from the cache.
+6. **The user starts interacting** — and now we're in client-side React land for the rest of the session.
 
 ---
 
-## 4. The Layout — Three Columns
+## 6. The Shell — Layout & Client-side Navigation
 
-Now let's look at `src/App.tsx` — the heart of the app.
+The `WorkstationShell` (`src/components/WorkstationShell.tsx`) is the permanent frame. It's a client component, so it can use the router hooks.
 
-```tsx
-export default function App() {
-  const { isDarkMode } = useTheme()
-  const {
-    selectedSurah, setSelectedSurah,
-    activeTab, setActiveTab,
-    searchQuery, setSearchQuery,
-    mobileSidebarOpen, setMobileSidebarOpen,
-    typeFilter, setTypeFilter,
-    juzFilter, setJuzFilter,
-    sidebarTab, setSidebarTab,
-    bookmarks, toggleBookmark, isBookmarked, removeBookmark, clearAll,
-    readingHistory, completedSurahs, addHistoryItem, toggleComplete,
-    tafsirText, verseRangeValue, setVerseRangeValue, fetchTafsir, hasTafsir,
-    searchInput, setSearchInput, results, searching, bottomRef,
-    handleSearch, clearResults, handleNavigateToSurah,
-  } = useAppState()
+### How it knows which surah we're on
 
-  return (
-    <div className={`flex h-screen w-full overflow-hidden ${
-      isDarkMode ? 'bg-brand-dark-bg text-brand-dark-active' : 'bg-brand-parchment text-brand-rich'
-    }`}>
-      <MobileOverlay open={mobileSidebarOpen} onClose={() => setMobileSidebarOpen(false)} />
-      <BrandStrip />
-      <Sidebar
-        selectedSurah={selectedSurah}
-        setSelectedSurah={setSelectedSurah}
-        searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
-        mobileSidebarOpen={mobileSidebarOpen}
-        setMobileSidebarOpen={setMobileSidebarOpen}
-        typeFilter={typeFilter}
-        setTypeFilter={setTypeFilter}
-        juzFilter={juzFilter}
-        setJuzFilter={setJuzFilter}
-        sidebarTab={sidebarTab}
-        setSidebarTab={setSidebarTab}
-        completedSurahs={completedSurahs}
-      />
-      <MainContent
-        selectedSurah={selectedSurah}
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        mobileSidebarOpen={mobileSidebarOpen}
-        setMobileSidebarOpen={setMobileSidebarOpen}
-        toggleBookmark={toggleBookmark}
-        isBookmarked={isBookmarked}
-        toggleComplete={toggleComplete}
-        completedSurahs={completedSurahs}
-        tafsirText={tafsirText}
-        verseRangeValue={verseRangeValue}
-        setVerseRangeValue={setVerseRangeValue}
-        fetchTafsir={fetchTafsir}
-        hasTafsir={hasTafsir}
-        searchInput={searchInput}
-        setSearchInput={setSearchInput}
-        results={results}
-        searching={searching}
-        bottomRef={bottomRef}
-        handleSearch={handleSearch}
-        clearResults={clearResults}
-        handleNavigateToSurah={handleNavigateToSurah}
-        bookmarks={bookmarks}
-        readingHistory={readingHistory}
-        clearAll={clearAll}
-        removeBookmark={removeBookmark}
-      />
-    </div>
-  )
-}
+```ts
+const router = useRouter();                            // navigate programmatically
+const params = useParams<{ id?: string }>();           // reads the CURRENT URL segment
+const selectedSurah = resolveSurah(params?.id);
 ```
 
-The layout is simple: three columns side by side (on large screens):
+- On `/` there's no `id` param, so `resolveSurah` falls back to `SURAHS[0]` (Al-Fatihah).
+- On `/surah/50` it finds surah 50 by id; if the id is unrecognized it also falls back safely.
+
+> **Two different "params":** in the *server* page (`surah/[id]/page.tsx`) params is an `async Promise` you `await`. In this *client* shell, `useParams()` is a hook that returns the plain current-route value. Different mechanisms for the same URL — don't mix them up.
+
+### Client-side navigation — the click that never reloads
+
+When the user clicks البقرة in the sidebar:
+
+```ts
+const onSelectSurah = (id: number) => {
+  setMobileSidebarOpen(false);          // close the drawer on mobile
+  if (id === selectedSurah.id) return;  // already there, do nothing
+  router.push(`/surah/${id}`);          // ← the magic line
+};
+```
+
+`router.push` is **client-side navigation**. Next *does not reload the page*; instead it fetches the RSC payload for the target route (or grabs it from the cache/service worker) and swaps the content in place. The shell, sidebar, theme, bookmarks — all stay mounted and keep their state. That's why the whole reader feels app-like despite being 115 separate pages.
+
+### The three columns
 
 ```
 ┌──────────────┬──────────────────────────────────┬──────────────────────┐
-│  BrandStrip  │          MainContent              │      Sidebar         │
-│  (decorative │  ┌─Header─────────────────────┐   │  ┌────────────────┐  │
-│   strip,     │  │  Surah Banner              │   │  │ Surah list     │  │
-│   xl screens │  ├─TabBar─────────────────────┤   │  │ with search    │  │
-│   only)      │  │  Active Tab (content)      │   │  │ and filters    │  │
-│              │  │  - OverviewTab             │   │  │                │  │
-│              │  │  - VersesTab               │   │  │                │  │
-│              │  │  - ChatTab                 │   │  │                │  │
-│              │  │  - StatsTab                │   │  │                │  │
-│              │  └─Footer─────────────────────┘   │  └────────────────┘  │
+│  BrandStrip  │   {children}  (page content)     │      Sidebar         │
+│  (decorative │  ┌─Header─────────────────────┐  │  ┌────────────────┐  │
+│   strip,     │  │  Surah banner + toolbar    │  │  │ فهرس السور     │  │
+│   xl screens │  ├─TabBar─────────────────────┤  │  │ فهرس الأجزاء   │  │
+│   only)      │  │  Active tab content        │  │  │ [search box]   │  │
+│              │  └─Footer─────────────────────┘  │  │ [type filters] │  │
 └──────────────┴──────────────────────────────────┴──────────────────────┘
 ```
 
-On mobile, the sidebar becomes a slide-out drawer (triggered by the hamburger icon), and BrandStrip disappears.
+On small screens the fixed-position sidebar slides in as a right-side drawer (`MobileOverlay` dims the page behind it), and the BrandStrip is hidden.
 
-### The Props Pattern
+### Sidebar: derived state, not stored state
 
-Notice that every prop is **explicitly listed**. App.tsx destructures everything from `useAppState()` and passes each prop individually to the child components.
-
-The key pattern here: **no prop spreading, no magic.** You can see exactly what data each component receives by looking at the `App.tsx` file. This is deliberate — with ~25 pieces of shared state, listing them explicitly makes the data flow transparent. If a component needs a new piece of state, you add it in one place (`useAppState`) and thread it through `App.tsx` to the component that needs it.
-
-> **Note:** This is a project-specific pattern, not a universal React convention. It works well here because the state is centralized.
-
----
-
-## 5. The Sidebar — Finding a Surah
-
-The sidebar (`src/components/Sidebar.tsx`) is the main navigation. It's split into two sub-tabs:
-
-1. **فهرس السور** (Surah Index) — scrollable list of all 114 surahs
-2. **فهرس الأجزاء** (Juz Index) — 7 Juz groups
-
-### How does the surah list work?
-
-The surah data lives in `src/data/surahs.ts`:
-
-```ts
-export const SURAHS: Surah[] = [
-  { id: 1, name: "Al-Fatihah", arName: "الفاتحة", type: "مكية", versesCount: 7, ... },
-  { id: 2, name: "Al-Baqarah", arName: "البقرة", type: "مدنية", versesCount: 286, ... },
-  // ... 112 more
-]
-```
-
-This is a plain array — not loaded from a server or database. It's hard-coded in the source.
-
-### State: `useState` explained
-
-When you click a surah, the app needs to remember which one you picked. This is where `useState` comes in:
-
-```tsx
-import { SURAHS } from '../data/surahs'
-import type { Surah } from '../types'
-
-const [selectedSurah, setSelectedSurah] = useState<Surah>(SURAHS[0])
-```
-
-`selectedSurah` is a **Surah object**, not just a number. The `Surah` type holds the surah's ID, Arabic name, English name, verse count, revelation type, and Juz number. `SURAHS[0]` is the first entry in the surahs array — Al-Fatihah.
-
-**Think of `useState` as a memory box with a remote control:**
-- The box holds a Surah object (`selectedSurah` starts at Al-Fatihah, `id: 1`)
-- The remote control (`setSelectedSurah`) is the only way to change what's in the box
-- When you press the remote (pass a new surah object), React notices and **re-renders** the component
-
-### What happens when you click a surah?
-
-1. You click "البقرة" (Al-Baqarah) in the sidebar
-2. The click handler runs: `setSelectedSurah(surah)` where `surah` is the full Surah object for Al-Baqarah
-3. React marks the component tree as "dirty" (needs update)
-4. React calls `App()` again (re-render)
-5. This time, `selectedSurah` is the object for surah 2, not surah 1
-6. The sidebar highlights Al-Baqarah instead of Al-Fatihah
-7. `MainContent` receives the new `selectedSurah` and loads Al-Baqarah's tafsir
-
-### Filters — Derived State
-
-The sidebar has search, type filter (مكية/مدنية), and Juz filter. But notice — there's **no separate state** for the filtered list. The filtered list is **derived** from the original `SURAHS` array:
+The sidebar (`Sidebar.tsx`) has search, type filter (مكيّة/مدنيّة), and Juz filter. Notice there is **no separate state** for the filtered list — it's *derived* during render:
 
 ```tsx
 const filteredSurahs = SURAHS.filter(surah => {
-  const matchesSearch = surah.arName.includes(searchQuery) ||
-                        surah.name.toLowerCase().includes(searchQuery.toLowerCase())
-  const matchesType = typeFilter === 'all' || surah.type === typeFilter
-  const matchesJuz = juzFilter === null || surah.juzNumber === juzFilter
-  return matchesSearch && matchesType && matchesJuz
+  const matchesSearch =
+    surah.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    surah.arName.includes(searchQuery);
+  const matchesType = typeFilter === 'all' || surah.type === typeFilter;
+  const matchesJuz  = juzFilter === null || surah.juzNumber === juzFilter;
+  return matchesSearch && matchesType && matchesJuz;
+});
+```
+
+**Key lesson:** if you can compute a value from existing state, compute it during render. No extra state = no way for the filtered list to drift out of sync with the source list.
+
+> **Gotcha worth remembering:** the sidebar's own navigation to a new surah does **not** preserve the active tab — it lands back on `overview`. Only the chat search results deliberately navigate with `?tab=verses` to jump straight to verses.
+
+---
+
+## 7. SurahReader — The Tab Interface
+
+The page content is a single client component: `SurahReader` (`src/components/SurahReader.tsx`). It receives the `surah` object and the `initialTafsirText` that the server computed.
+
+### What it renders
+
+- **Header** — the app title, the "PART" badge, theme toggle, quick bookmark, and "mark study/finished" button.
+- **SurahBanner** — surah name, revelation type, verse count (`memo`'d so it doesn't re-render on every keystroke elsewhere).
+- **TabBar** — the four tabs: `نظرة عامة` (overview), `استعراض الآيَات` (verses), `بحث في الظلال` (chat/search), `سجل المُدارسة` (stats).
+- **The active tab** — one of OverviewTab, VersesTab, ChatTab, or StatsTab.
+- **Footer** — the decorative "DHILAL AL-QURAN • STUDIOS" footer (`memo`'d too).
+
+### Tabs live in the URL
+
+The active tab is **kept in the query string**, not just in memory:
+
+```tsx
+const searchParams = useSearchParams();
+const requestedTab = searchParams.get('tab');
+const activeTab = requestedTab && VALID_TABS.includes(requestedTab) ? requestedTab : 'overview';
+
+const setActiveTab = (tab) => {
+  // build ?tab=… (or remove it for overview) and router.replace() to it
+};
+```
+
+This makes tabs **sharable and refresh-safe**: you can send `https://site/surah/2?tab=stats` to someone and they'll land on the stats tab; refresh, and the tab survives.
+
+### Tabs are lazy-loaded
+
+```tsx
+const OverviewTab = lazy(() => import('./OverviewTab').then(m => ({ default: m.OverviewTab })));
+const VersesTab   = lazy(() => import('./VersesTab').then(m => ({ default: m.VersesTab })));
+const ChatTab     = lazy(() => import('./ChatTab').then(m => ({ default: m.ChatTab })));
+const StatsTab    = lazy(() => import('./StatsTab').then(m => ({ default: m.StatsTab })));
+```
+
+Each tab is its own JavaScript chunk, fetched only when you first open it (wrapped in the `Suspense` fallback — the tiny gold spinner). The tabs even animate in/out via `motion` (`AnimatePresence mode="wait"`).
+
+### Why `SurahReader` is split into a wrapper + inner component
+
+`SurahReader` itself uses `useSearchParams()`. In Next.js 16, any component calling `useSearchParams()` must be inside a `<Suspense>` boundary (otherwise static pre-rendering would have to bail out). So the component is split:
+
+```tsx
+export function SurahReader(props) {
+  return (
+    <Suspense fallback={<empty-coloured-div/>}>
+      <SurahReaderInner {...props} />   // ← the part that calls useSearchParams()
+    </Suspense>
+  );
+}
+```
+
+Outer `SurahReader` stays stateless (safe to render during SSG); only the inner, Suspense-wrapped half touches the query string.
+
+### The four tabs at a glance
+
+| Tab | File | Job |
+|-----|------|-----|
+| نظرة عامة | `OverviewTab.tsx` | Full-surah tafsir with verse highlighting; graceful "لم نعثر بعد" message for the 4 surahs without tafsir |
+| استعراض الآيَات | `VersesTab.tsx` | A verse-range selector (`كامل السورة`, `1-50`, …) + the matching slice, via `SectionSelector` + `TafsirDisplay` |
+| بحث في الظلال | `ChatTab.tsx` | Full-text search across **all** 110 surahs with highlighted excerpts and quick topics |
+| سجل المُدارسة | `StatsTab.tsx` | Stats cards, bookmarks list, reading history, export/import (`تصدير`/`استيراد`), clear-all |
+
+---
+
+## 8. The Tafsir Data Pipeline
+
+Everything a user reads comes from one local data source. Understanding where the pixels come from is the heart of this app.
+
+### The source: `src/data/tafsir.ts`
+
+A single auto-generated TypeScript file (`≈19MB`, `305` sections across `110` surahs):
+
+```ts
+// Auto-generated from doc files. Do not edit manually.
+export const TAFSIR_DATA: Record<number, TafsirSection[]> = {
+  1: [
+    { startVerse: 1, endVerse: 7, text: "بِسْمِ اللَّهِ الرَّحْمنِ الرَّحِيمِ\n(1)..." }
+  ],
+  2: [
+    { startVerse: 1, endVerse: 29, text: "بِسْمِ اللَّهِ ... الم (1) ذلِكَ الْكِتابُ..." },
+    { startVerse: 30, endVerse: 39, text: "وَإِذْ قالَ رَبُّكَ لِلْمَلائِكَةِ..." },
+    // … Al-Baqarah alone has dozens of verse-range sections
+  ],
+  // … 108 more keys
+};
+```
+
+It's created from the original `.doc` manuscripts by `pnpm exec tsx scripts/extract-tafsir.ts`. It **isn't committed to git** — it's regeneratable, and it's too big to churn the history every time.
+
+### The tiny meta file
+
+`src/data/tafsir-meta.ts` exports a `Set` of the 110 surah ids that *have* tafsir:
+
+```ts
+export const SURAHS_WITH_TAFSIR = new Set([1, 2, 3, …]);
+```
+
+This answers "does surah X have tafsir?" in **O(1)** time without touching the 19MB file. Surahs 44 (الدخان), 50 (ق), 76 (الإنسان), and 89 (الفجر) are missing from the source material, so their pages show the graceful "لم نعثر بعد على النص الأصلي…" message.
+
+### Loading the data twice, two different ways
+
+The loader (`src/data/tafsir-loader.ts`) is a **singleton promise**:
+
+```ts
+let dataPromise: Promise<Record<number, TafsirSection[]>> | null = null;
+
+export function loadTafsirData() {
+  if (!dataPromise) {
+    dataPromise = import('./tafsir')      // dynamic import → separate chunk
+      .then(m => m.TAFSIR_DATA)
+      .catch(err => { dataPromise = null; throw err; });
+  }
+  return dataPromise;                     // every caller shares ONE load
+}
+```
+
+Where it's used:
+
+1. **At build time (server).** Each SSG page calls it once to compute `initialTafsirText` for its surah. The ~19MB module is parsed once on the build machine; the browser only receives the *sliced* per-surah text in the HTML.
+2. **On the client (browser).** The *whole* dataset chunk is dynamically fetched **only** when needed — notably for full-text search (`useSearch` → `loadTafsirData()`) and for fetching a verse-range that wasn't pre-rendered (`fetchTafsir` in `useTafsir`). The singleton promise means it's downloaded at most once per visit.
+
+**Analogy:** Netflix shows you the "menu" (the tab/shell — small), preloads the *episode you actually clicked Play on* into the HTML (that surah's text), and only downloads the "full archive" if you start searching across everything.
+
+### Getting the text for a (surah, range) pair
+
+`src/utils/tafsir-data.ts` → `getTafsirText(surahId, data, range)`:
+
+```ts
+if (range === 'كاملة') {
+  return sections.map(s => s.text).join('\n\n');     // join every section
+}
+// "1-50" → keep sections that overlap verses 1..50, then join them
+```
+
+`null` is returned for missing surahs/empty ranges — which is exactly the signal the UI checks to show the "not found yet" panel.
+
+### The formatting pipeline (render layer)
+
+Raw `.doc` text is one hard-wrapped wall of text. Two pure functions shape it, and they run wherever the text is rendered:
+
+```
+raw section string
+   │
+   ▼
+formatTafsirParagraphs(text)     src/utils/tafsir-format.ts
+   • split sections on \n\n
+   • join hard-wrapped lines
+   • start a NEW paragraph when a line both follows punctuation and
+     begins with a typical opener (~40 Arabic keywords: إن، هذا، ثم، لقد…)
+   ▼
+paragraph: string[]
+   │
+   ▼
+splitVerseSegments(paragraph)    same file
+   • «…» guillemets → verse segment
+   • text ending in (1)(2)(3)… → verse segment (gold)
+   • everything else → commentary segment
+   ▼
+TafsirContent renders           src/components/TafsirContent.tsx
+   <p>…verse in text-gilded-gold, commentary in body colour…</p>
+```
+
+Verse text is rendered in **gold** (`text-gilded-gold`, brand `#F27D26`) within `TafsirContent`, while Sayyid Qutb's commentary keeps the normal reading colour — the app's signature visual device. **Why in the render layer and not the extraction script?** Because it's pure derivation from the raw text; the source file stays as close to the manuscript as possible, and any typography decision can be tweaked without regenerating 19MB.
+
+---
+
+## 9. Persistence — localStorage & Supabase Sync
+
+Your bookmarks, reading history, completed surahs, and theme should survive reloads — and (now) follow you across devices without any login. There are two layers: **localStorage** (instant, offline) and **Supabase** (cloud, debounced).
+
+### The problem SSR introduces: hydration mismatches
+
+In the old SPA era it was "read localStorage at component start" and done. Under Next.js the server renders your components **first** — and the server has no `localStorage`. If a component synced state with storage during the very same render pass it used for output, the HTML (server) and the first client render would disagree → React throws a hydration mismatch / flashes the wrong theme.
+
+### The solution: mount-read + hydrated save-guard
+
+Every storage-backed hook follows the same two-phase pattern. See `src/hooks/useLocalStorageState.ts`:
+
+```ts
+const [value, setValue] = useState(defaultValue);   // 1. render with the DEFAULT
+const [hydrated, setHydrated] = useState(false);
+
+useEffect(() => {
+  const stored = localStorageBackend.get(key);     // 2. AFTER mount, read storage
+  if (stored !== null) setValue(stored);
+  setHydrated(true);
+}, [key]);
+
+useEffect(() => {
+  if (hydrated) localStorageBackend.set(key, value);  // 3. only write once hydrated
+}, [key, value, hydrated]);
+```
+
+Server and first client render both agree (phase 1). Storage is read **after** mount (phase 2) and the correction triggers a quiet re-render. Nothing is written back until we know we've read (phase 3, the "hydrated save-guard"), so a stale value can never overwrite a fresh one.
+
+`ThemeContext.tsx` does exactly this for `dhilal_theme` (default: dark). And the storage backend itself (`src/utils/localStorage.ts`) is SSR-guarded — it no-ops its reads/writes if `window`/`localStorage` are undefined, so even a careless call can't crash the server.
+
+> **Golden rule you'll be reminded of constantly:** never touch `localStorage` during render. Read it in a mount effect, write it in a hydrated effect.
+
+### The keys
+
+| Key | Holds |
+|-----|-------|
+| `dhilal_theme` | `'dark'` \| `'light'` |
+| `dhilal_bookmarks` | bookmark objects (surah, optional verse, date) |
+| `dhilal_history` | last 20 visited surahs/ranges |
+| `dhilal_completed` | array of completed surah ids |
+| `dhilal_device_id` | `crypto.randomUUID()` — the "identity" for sync |
+
+### The engine room: `useAppState()`
+
+`src/context/AppStateContext.tsx` composes everything into one hook so components never reach for the storage directly:
+
+```
+useAppState()
+  ├── useBookmarks()      → bookmarks, toggleBookmark, isBookmarked, removeBookmark, clearAll
+  ├── useProgress()       → readingHistory, completedSurahs, addHistoryItem, toggleComplete
+  ├── useSearch()         → searchInput, results, searching, handleSearch, clearResults
+  ├── useDataSync()       → syncPending (cloud sync status flag)
+  └── local UI state      → searchQuery, mobileSidebarOpen, juzFilter, typeFilter, sidebarTab
+```
+
+Every storage-backed hook is built on `useLocalStorageState`, which (as above) is what makes the whole tree hydration-safe.
+
+### Cloud sync: `src/utils/syncBackend.ts`
+
+The storage backend exposes an `onChange` callback registry; `useDataSync` subscribes to it. The flow:
+
+1. **On mount** — `syncBackend.initFromServer()` → `GET /api/user-data` with the device header → writes server data into localStorage (so a fresh device inherits its bookmarks).
+2. **User acts** — bookmarking, finishing a surah, toggling theme → `localStorageBackend.set(...)` fires change callbacks → `syncBackend.notifyChange()`.
+3. **Debounce (1.5s)** — rapid changes are coalesced; after silence, one `PUT /api/user-data` uploads `{bookmarks, history, completed, theme}`.
+4. **Retries with backoff** — up to 3 attempts with `2^n`-second waits, and a `dhilal_sync_pending` flag tracks whether a sync still owes the server (shown by the `syncPending` state).
+
+All API calls send the device header `x-device-id` — the browser's only "login". Keep the localStorage keys in sync with the server table columns (`device_id`, `bookmarks`, `history`, `completed`, `theme`) whenever you change one.
+
+---
+
+## 10. The Unified API — Route Handlers
+
+There is no separate backend folder, no `vercel.json`, no `server.ts`. The entire REST API lives in **Route Handlers** — regular files named `route.ts` under `src/app/api/`. One code path runs identically in dev, in `next start`, and on Vercel.
+
+### The endpoints
+
+| Route | Method | Purpose |
+|-------|--------|---------|
+| `/api/health` | GET | returns `{ status: 'ok' }` |
+| `/api/user-data` | GET | fetch this device's data from Supabase (creates a row on first visit) |
+| `/api/user-data` | PUT | upsert this device's `{bookmarks, history, completed, theme}` |
+| `/api/user-data/export` | GET | download the JSON as an attachment (`dhilal-user-data.json`) |
+| `/api/user-data/import` | POST | import JSON from a backup (`upsert`, same shape) |
+
+### Walking through `PUT /api/user-data`
+
+The route handler file exports an async function named after the HTTP method — Next wires it up for you:
+
+```ts
+export async function PUT(req: NextRequest) {
+  const deviceId = req.headers.get('x-device-id');      // 1. who is this device?
+  if (!deviceId) return 400;                            //    no ID → refuse
+
+  const body = await req.json();                        // 2. the payload
+  // { bookmarks?, history?, completed?, theme? }
+
+  const { data, error } = await getSupabase()           // 3. lazy singleton client
+    .from('user_data')
+    .upsert({ device_id: deviceId, ...body,
+              updated_at: new Date().toISOString() },
+            { onConflict: 'device_id' })                //    insert-or-update
+    .select().single();
+
+  return error ? NextResponse.json({ error: error.message }, { status: 500 })
+               : NextResponse.json(data);               // 4. JSON out
+}
+```
+
+`GET /api/user-data` is the mirror image: `.eq('device_id', deviceId).maybeSingle()`, creating the row if it doesn't exist yet. `export` wraps the same read in a download header; `import` is the same upsert as `PUT`.
+
+### The Supabase client is server-only
+
+`src/lib/supabase.ts` creates a **singleton** `@supabase/supabase-js` client using `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` env vars — the *service role*, which bypasses Row Level Security. That key must **never** be imported into a client component (it's only reachable from server code / route handlers). The browser talks to Supabase *through* our route handlers, never directly.
+
+The `user_data` table (from `supabase/migrations/20260701_create_user_data.sql`):
+
+```
+user_data
+  id          bigint identity PK
+  device_id   text UNIQUE NOT NULL        ← what x-device-id maps to
+  bookmarks   jsonb  default '[]'
+  history     jsonb  default '[]'
+  completed   jsonb  default '[]'
+  theme       text   default 'dark'
+  created_at / updated_at timestamptz
+```
+
+### Security headers (production only)
+
+`next.config.ts` applies a strict set of response headers to every route — **CSP** (`default-src 'self'`, fonts from Google, workers/worker from self, `frame-ancestors 'none'`), `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, a `Referrer-Policy`, and a `Permissions-Policy` that denies camera/mic/geolocation. Notice the `headers()` hook returns `[]` when `NODE_ENV !== 'production'` — no CSP fights during local dev.
+
+---
+
+## 11. PWA — Offline & Installation
+
+The app is installable and works offline via a service worker provided by **`@serwist/next`** (the Web-push-era successor of `next-pwa`; **serwist** is the library at runtime).
+
+### The pipeline at build time
+
+`next.config.ts` wraps the config:
+
+```ts
+withSerwist({
+  swSrc: 'src/app/sw.ts',        // the worker SOURCE (TypeScript we author)
+  swDest: 'public/sw.js',        // the built worker (a gitignored artifact)
+  cacheOnNavigation: true,
+  disable: process.env.NODE_ENV !== 'production',   // no SW in dev
 })
 ```
 
-**Key lesson:** You don't need state for everything. If you can calculate a value from existing state, calculate it during render. This keeps your code simpler and avoids bugs where the "filtered list" gets out of sync with the "original list."
+During `next build`, serwist also compiles your **precache manifest** — the list of every static asset (pages, JS chunks, CSS, the manifest, icons) — and bakes it into `public/sw.js` alongside the `swe-worker-*.js` runtime library.
 
-> **Deeper dive:** See the State Management section in [`docs/REACT-19-BEST-PRACTICES.md`](./REACT-19-BEST-PRACTICES.md).
-
----
-
-## 6. The Tafsir Data — Where Does It Live?
-
-This is the most unusual thing about this app. The entire Quranic commentary — all 110 surahs, 305 verse-range sections — lives inside a **single JavaScript file**.
-
-### The File: `src/data/tafsir.ts`
-
-This file is **auto-generated** from `.doc` files (Word documents) using the script at `scripts/extract-tafsir.ts`. It looks something like:
+### The worker itself — `src/app/sw.ts`
 
 ```ts
-export const TAFSIR_DATA: Record<number, TafsirSection[]> = {
-  1: [
-    { startVerse: 1, endVerse: 7, text: "هذه السورة..." }
-  ],
-  2: [
-    { startVerse: 1, endVerse: 50, text: "الم... " },
-    { startVerse: 51, endVerse: 100, text: "وإذ واعدنا..." },
-    // ...
-  ],
-  // ... 108 more surahs
-}
+const serwist = new Serwist({
+  precacheEntries: self.__SW_MANIFEST,   // static files to install up-front
+  skipWaiting: true,                     // activate new versions immediately
+  clientsClaim: true,                    // take control without a reload
+  navigationPreload: true,
+  runtimeCaching: defaultCache,          // ← the runtime rules from @serwist/next/worker
+});
+serwist.addEventListeners();
 ```
 
-The type `Record<number, TafsirSection[]>` means: an object where each key is a surah ID (number), and each value is an array of sections. Each section has a verse range and the tafsir text.
+`defaultCache` is Serwist's sensible default set, and the two that matter here:
 
-### Why is it 18MB?
+- **HTML pages** → **NetworkFirst** (try the network; fall back to cache — so an open page works offline, but you always get fresh content when online).
+- **`/api/*`** → **NetworkFirst** too (your user-data sync benefits from the same fallback/staleness trade-off).
 
-Uncompressed Arabic text takes space. 305 sections of dense commentary across 110 surahs adds up. The file is gitignored (listed in `.gitignore`) because it's regeneratable — you can always run the extraction script again.
+### The web app manifest
 
-### The Problem: 18MB is Big
+`src/app/manifest.ts` produces `/manifest.webmanifest` (Next's `manifest.ts` convention — do **not** also set `metadata.manifest`): Arabic name/short_name, `display: standalone`, portrait orientation, `theme_color: #F27D26`, and the SVG icons from `public/icons/`.
 
-If this file were imported at the top of the app, the browser would have to download and parse 18MB before showing anything useful. First page load would take forever.
+### Supporting metadata
 
-### The Solution: Lazy Loading
+- `src/app/sitemap.ts` — 115 URLs: `/` plus all 114 surah pages.
+- `src/app/robots.ts` — allow all, point to the sitemap.
+- `src/app/sw.ts` is **not** an API or a page — it's the worker source, and `tsconfig.json` deliberately excludes `public/sw.js` from type-checking.
 
-Open `src/data/tafsir-loader.ts`:
-
-```ts
-import type { TafsirSection } from '../types'
-
-let dataPromise: Promise<Record<number, TafsirSection[]>> | null = null
-
-export function loadTafsirData(): Promise<Record<number, TafsirSection[]>> {
-  if (!dataPromise) {
-    dataPromise = import('./tafsir').then(m => m.TAFSIR_DATA)
-  }
-  return dataPromise
-}
-```
-
-**Dynamic `import()`** is a browser feature that lets you load a JavaScript file on demand, not at startup. The first time any component calls `loadTafsirData()`, the browser fetches and parses the 18MB file. Every subsequent call gets the cached promise (a **singleton pattern**).
-
-**Think of it like:** Netflix doesn't download every movie when you open the app. It downloads the menu first, then downloads a movie only when you click "Play." Here, the "menu" is the surah list (~5KB), and the "movie" is the tafsir data (18MB).
-
-The tafsir data loads only when the user clicks a surah (triggered by `useTafsir` hook) or when they use search (triggered by `useSearch` hook). The initial screen appears instantly.
-
-### The Meta File
-
-`src/data/tafsir-meta.ts` contains a simple `Set`:
-
-```ts
-export const SURAHS_WITH_TAFSIR = new Set([1, 2, 3, ...]) // 110 IDs
-```
-
-This lets the app check "does surah X have tafsir?" in **O(1)** time — basically instantly — without loading the 18MB file. Four surahs (44, 50, 76, 89) are missing from the source material, so they show a graceful "لم نعثر بعد" (not found yet) message.
-
-> **Deeper dive:** See the Performance section in [`docs/REACT-19-BEST-PRACTICES.md`](./REACT-19-BEST-PRACTICES.md) for more on lazy loading strategies.
+**A daily-emitting detail:** the service worker is what makes everything above actually *work* when the network is gone. It's also the reason the whole project is coupled to **webpack** — see the next chapter.
 
 ---
 
-## 7. The Engine Room — Hooks
+## 12. Scripts & Tooling
 
-Hooks are the most important React concept to understand. They are functions that let your component **remember things** and **do things at the right time**.
+### The commands
 
-### What is a Hook?
+| Command | Runs | What happens |
+|---------|------|--------------|
+| `pnpm run dev` | `next dev --webpack` | Dev server at `http://localhost:3000`, hot reload, PWA disabled (safe for local iteration) |
+| `pnpm run build` | `next build --webpack` | Full production build: SSG ×115 pages, route handlers, `public/sw.js`, sitemap/robots/manifest |
+| `pnpm run start` | `next start` | Serve the built app in production mode (after `build`) |
+| `pnpm run clean` | `rm -rf .next` | Remove build artifacts — the `rm -rf .next` you'll want when an old build confuses `next dev` |
+| `pnpm run lint` | `tsc --noEmit` | Type-check the whole project |
+| `pnpm test` | `vitest run` | Run the test suite (117 tests across 13 files) |
+| `pnpm run test:watch` | `vitest` | Watch mode for the same suite |
 
-A hook is a function whose name starts with `use`. Built-in hooks include `useState`, `useEffect`, `useRef`, `useMemo`, `useCallback`. You can also write your own custom hooks — that's what this project does.
+### The `--webpack` flag is non-negotiable
 
-**Analogy:** A component is like a kitchen. Hooks are the appliances:
-- `useState` = refrigerator (remembers ingredients between uses)
-- `useEffect` = timer (rings when something needs attention)
-- `useRef` = measuring cup (holds a reference without causing re-renders)
+Next 16 defaults to **Turbopack** for dev/build speed. Turbopack **bypasses `@serwist/next`'s webpack hook**, so no `public/sw.js` would be emitted and the PWA would silently vanish from production builds. That's why `dev` and `build` both pass `--webpack` — and why you should keep it that way.
 
-### The Master Hook: `useAppState()`
+### Testing
 
-Open `src/hooks/useAppState.ts`. This is the conductor of the whole orchestra. Instead of spreading state management across 10 different files, one hook collects it all:
+Tests use **Vitest + React Testing Library** under a jsdom environment (the `@vitejs/plugin-react` in the Vitest config is only for the *test* transpile — it has nothing to do with the app's runtime build). Colocated next to their subjects:
 
-```tsx
-export function useAppState() {
-  // Shared state (useState calls)
-  const [selectedSurah, setSelectedSurah] = useState<Surah>(SURAHS[0])
-  const [activeTab, setActiveTab] = useState<TabId>('overview')
-  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
-  const [juzFilter, setJuzFilter] = useState<number | null>(null)
-  const [typeFilter, setTypeFilter] = useState<'all' | 'مكية' | 'مدنية'>('all')
-  const [sidebarTab, setSidebarTab] = useState<'surahs' | 'juz'>('surahs')
-
-  // Sub-hooks
-  const { bookmarks, toggleBookmark, isBookmarked, removeBookmark, clearAll: clearBookmarks }
-    = useBookmarks()
-  const { completedSurahs, readingHistory, addHistoryItem, toggleComplete, clearAll: clearHistory }
-    = useProgress()
-  const { tafsirText, verseRangeValue, setVerseRangeValue, fetchTafsir, hasTafsir, tafsirLoaded }
-    = useTafsir()
-  const { searchInput, setSearchInput, results, searching, bottomRef, handleSearch, clearResults }
-    = useChat()
-
-  // Effects
-  useEffect(() => {
-    fetchTafsir(selectedSurah, 'كاملة')
-    addHistoryItem(selectedSurah, 'كاملة')
-    setVerseRangeValue('كاملة')
-  }, [selectedSurah])
-
-  // Return everything as a tidy package
-  return { selectedSurah, setSelectedSurah, activeTab, setActiveTab, ... }
-}
+```
+src/components/SurahReader.test.tsx     ← component tests; navigation is mocked
+src/components/WorkstationShell.test.tsx
+src/components/QuickSearch.test.tsx
+src/components/TafsirDisplay.test.tsx
+src/components/SectionSelector.test.tsx
+src/hooks/useLocalStorageState.test.ts
+src/utils/{highlight,index,localStorage,search,syncBackend,tafsir-data,tafsir-format}.test.ts
 ```
 
-The key `useEffect` near the bottom is the **bridge between clicking and loading**:
+Because components now use `next/navigation` (`useRouter`, `useParams`, `useSearchParams`), the component tests mock it. `pnpm run lint` (the type check) is the other pre-merge gate.
 
-```tsx
-useEffect(() => {
-  fetchTafsir(selectedSurah, 'كاملة')      // load the text
-  addHistoryItem(selectedSurah, 'كاملة')    // save to history
-  setVerseRangeValue('كاملة')               // reset verse range
-}, [selectedSurah])                          // ← "when selectedSurah changes"
-```
+### Next.js 16 gotchas that shape the code
 
-This says: **"Every time `selectedSurah` changes, run this code."**
-
-### Individual Hooks
-
-| Hook | File | What it manages | Persistence |
-|------|------|----------------|-------------|
-| `useTheme` | `context/ThemeContext.tsx` | Dark/light mode | localStorage |
-| `useBookmarks` | `hooks/useBookmarks.ts` | Bookmarked surahs & verses | localStorage |
-| `useProgress` | `hooks/useProgress.ts` | Reading history + completion | localStorage |
-| `useTafsir` | `hooks/useTafsir.ts` | Tafsir text + verse range | None (derived from data) |
-| `useSearch` | `hooks/useChat.ts` | Search query + results | None (in-memory) |
-| `useDataSync` | `hooks/useDataSync.ts` | Cloud sync status (Supabase) | localStorage + Supabase |
-| `useDeviceId` | `hooks/useDeviceId.ts` | Unique device identifier | localStorage |
-
-### How localStorage Persistence Works
-
-The hooks use a thin wrapper at `src/utils/localStorage.ts`:
-
-```ts
-export const localStorageBackend = {
-  get<T>(key: string): T | null {
-    try {
-      const item = localStorage.getItem(key)
-      return item ? JSON.parse(item) : null
-    } catch {
-      return null
-    }
-  },
-  set<T>(key: string, value: T): void {
-    localStorage.setItem(key, JSON.stringify(value))
-    this._callbacks.forEach(cb => cb(key, value))
-  },
-  _callbacks: ChangeCallback[] = [],
-  onChange(callback: ChangeCallback): void {
-    this._callbacks.push(callback)
-  }
-}
-```
-
-Every time a bookmark is added or removed, the hook calls `localStorageBackend.set()`. On initial load, it calls `.get()` to restore previous state. This is why your bookmarks and dark mode preference survive a page refresh — they're saved in the browser's local storage.
-
-The `onChange` callback system lets cloud sync (`useDataSync`) listen for changes and sync to Supabase whenever bookmarks, history, or theme are updated.
+- **`params` and `searchParams` are Promises** in server pages/route handlers. You must `await params` (see `surah/[id]/page.tsx`). In *client* components, use the `useParams`/`useSearchParams` hooks instead.
+- **`useSearchParams()` consumers must be inside `<Suspense>`** — hence the `SurahReader`/`SurahReaderInner` split.
+- **RTL everywhere** — the document is `dir="rtl"`; prefer `start`/`end` to `left`/`right`, and check `border-l`/`border-r` choices against the actual side (the sidebar is anchored `right-0`).
 
 ---
 
-## 8. Reading Tafsir — Click → Text on Screen
+## 13. Glossary of Framework Terms
 
-This is the most important flow in the app. Let's trace it end-to-end.
-
-### The Chain
-
-```
-Sidebar Click
-    │
-    ▼
-const selectedSurah = { id: 2, arName: 'البقرة', ... }  // ← full Surah object
-setSelectedSurah(selectedSurah)
-    │
-    ▼
-React re-renders App()
-    │
-    ▼
-useEffect runs (because [selectedSurah] changed)
-    │
-    ├── fetchTafsir(selectedSurah, 'كاملة')
-    │       │
-    │       ▼
-    │   loadTafsirData()  ← dynamic import of 18MB file (first time only)
-    │       │
-    │       ▼
-    │   getTafsirText(selectedSurah.id, data, 'كاملة')
-    │       │
-    │       ▼
-    │   Joins all sections for surah 2 into one string
-    │       │
-    │       ▼
-    │   setTafsirText(result)   ← triggers re-render of OverviewTab
-    │
-    ├── addHistoryItem(selectedSurah, 'كاملة')
-    │       │
-    │       ▼
-    │   Saves to localStorage, keeps last 20 items
-    │
-    └── setVerseRangeValue('كاملة')
-            │
-            ▼
-        Resets the range selector to "full surah"
-```
-
-### Step-by-Step: The Rendering Chain
-
-**1. `fetchTafsir(surah, range)`** — In `hooks/useTafsir.ts`:
-
-```ts
-const fetchTafsir = async (surah: Surah, range = 'كاملة') => {
-  setTafsirText(null)  // clear current text (shows loading state)
-  const data = await loadTafsirData()  // get the big data Record
-  const text = getTafsirText(surah.id, data, range)
-  setTafsirText(text)  // set the text → triggers re-render
-}
-```
-
-**2. `getTafsirText(surahId, data, range)`** — In `utils/tafsir-data.ts`:
-
-```ts
-export function getTafsirText(
-  surahId: number,
-  data: Record<number, TafsirSection[]>,
-  range: string
-): string | null {
-  const sections = data[surahId]
-  if (!sections) return null  // no tafsir for this surah
-
-  if (range === 'كاملة') {
-    return sections.map(s => s.text).join('\n\n')  // join all sections
-  }
-
-  // Parse "1-50" → start=1, end=50, filter overlapping sections
-  const [start, end] = range.split('-').map(Number)
-  return sections
-    .filter(s => s.startVerse <= end && s.endVerse >= start)
-    .map(s => s.text)
-    .join('\n\n')
-}
-```
-
-**3. Formatting — `formatTafsirParagraphs()`** — In `utils/tafsir-format.ts`:
-
-Raw `.doc` text comes as one long string with hard-wrapped lines. This function:
-- Splits on `\n\n` (section boundaries)
-- Joins hard-wrapped lines within sections
-- Detects where new paragraphs should start using punctuation + keyword detection (~40+ Arabic keywords like `إن`, `هذا`, `ثم`, `لقد`)
-
-**4. Rendering — `TafsirContent`** — In `components/TafsirContent.tsx`:
-
-```tsx
-export default function TafsirContent({ paragraphs }: { paragraphs: TafsirSegment[][] }) {
-  return paragraphs.map((segments, i) => (
-    <p key={i}>
-      {segments.map((seg, j) =>
-        seg.isVerse
-          ? <span key={j} className="text-gilded-gold">{seg.text}</span>
-          : seg.text
-      )}
-    </p>
-  ))
-}
-```
-
-Each paragraph is split into **verse segments** and **commentary segments**:
-- Verse text (detected by Arabic guillemets `«...»` or patterns ending with a verse number in parentheses) is rendered in **gold** (`#F27D26`)
-- Commentary text is rendered in the normal body color
-
-### What the User Sees
-
-```
-┌──────────────────────────────────────────────────────────────┐
-│  تفسير سورة البقرة                                           │
-│  Tafsir al-Qutb                                              │
-│                                                              │
-│  آية 1-50                                                     │
-│                                                              │
-│  الم  ﴿1﴾ ذلك الكتاب لا ريب فيه هدى للمتقين ﴿2﴾           │
-│                                                              │
-│  يبدأ السياق القرآني في سورة البقرة بهذه الحروف المقطعة       │
-│  التي يقول فيها سيد قطب: «إنها سر الله في كتابه» وهذه        │
-│  إشارة إلى أن القرآن معجز في تركيبه ومحتواه. (1)             │
-│                                                              │
-│  هذا المشهد القرآني يستغرق الحديث عن بني إسرائيل...          │
-└──────────────────────────────────────────────────────────────┘
-```
-
-The gold text is the actual Quranic verses embedded in the commentary. The regular text is Sayyid Qutb's explanation.
-
-### Missing Surahs
-
-For the 4 missing surahs (44 الدخان, 50 ق, 76 الإنسان, 89 الفجر), `getTafsirText` returns `null`, and the component shows:
-
-> "لم نعثر بعد على النص الأصلي لتفسير سورة '...' في مخطوطات الظلال المتوفرة. يعكف فريق التحرير على استكمال فهرسة جميع أجزاء موسوعة الأستاذ سيد قطب."
-
-> **Deeper dive:** See the Data Flow section in [`docs/REACT-19-BEST-PRACTICES.md`](./REACT-19-BEST-PRACTICES.md).
+| Term | Simple definition |
+|------|-------------------|
+| **Next.js / App Router** | The framework and its file-system routing (`src/app/`): pages, layouts, route handlers, metadata files. |
+| **Server Component** | A React component (default) that runs only on the server. Can `await`, read env/files; ships no JS. |
+| **Client Component** | A component marked `'use client'` that also runs in the browser, with hooks and event handlers. |
+| **SSG / Static Site Generation** | Pages rendered *once at build time* into HTML files, served fast forever. This app's 115 reading pages. |
+| **generateStaticParams** | Tells Next which dynamic route params to pre-build at build time (here: the 114 surah ids). |
+| **RSC Payload / Hydration** | The serialized component data + JS sent alongside HTML; React "resumes" it in the browser (hydration). |
+| **Route Group `(reader)`** | A folder in parens that shares a layout without adding a URL segment. |
+| **Route Handler** | A `route.ts` file exporting `GET`/`PUT`/… functions — the app's whole API layer. |
+| **Layout** | A shared wrapper (`layout.tsx`) that persists across navigations within its segment. |
+| **`notFound()`** | Next's built-in 404 trigger, used for unknown surah ids. |
+| **Dynamic import / Lazy chunk** | `import('./tafsir')` — code fetched only when first needed; here the 19MB dataset for search. |
+| **Hydration-safe storage** | The mount-read + hydrated-guard pattern so `localStorage` never causes SSR/client mismatches. |
+| **Service Worker / PWA** | A background script that precaches the app and serves pages/API NetworkFirst for offline support. |
+| **Precache / runtime cache** | Static assets installed up-front vs assets fetched and cached on use. |
+| **`x-device-id`** | The header identifying "this browser" to the API — the app's login-free identity. |
+| **Suspense** | React's "show a fallback while waiting" boundary; required around `useSearchParams` consumers. |
+| **Re-render** | React calling a component function again because state/props changed. |
 
 ---
 
-## 9. Search — Full-Text Across All Tafsir
+## 14. React Patterns You'll See On Every Page
 
-The search tab (بحث في الظلال) lets the user search across **all** 110 surahs of tafsir text at once.
+### 14.1 "Is this file client or server?" — look at the top
 
-### The Search Flow
+The very first thing to check in any `.tsx` file in `src/` is whether line 1 is `'use client';`.
 
-```
-User types "التوحيد"
-    │
-    ▼
-handleSearch("التوحيد")
-    │
-    ▼
-loadTafsirData()  ← loads 18MB if not already loaded
-    │
-    ▼
-searchTafsir("التوحيد", TAFSIR_DATA, surahNames)
-    │
-    ▼
-Iterates every section in every surah, counts word matches,
-generates excerpts, sorts by score, caps at 50 results
-    │
-    ▼
-setResults(matches)  ← triggers re-render of results list
-```
+- `Sidebar.tsx`, `WorkstationShell.tsx`, `SurahReader.tsx`, `OverviewTab.tsx`, all the `context/` and `hooks/` files → client (use hooks, browser APIs).
+- `src/app/layout.tsx`, the reader `page.tsx` files → server (they `await`, read `process.env`, call data functions).
 
-### The Search Algorithm — `searchTafsir()` in `utils/search.ts`
+### 14.2 TypeScript for reading
 
-```ts
-export function searchTafsir(
-  query: string,
-  data: Record<number, TafsirSection[]>,
-  surahNames: Map<number, string>
-): SearchMatch[] {
-  const queryWords = query.trim().split(/\s+/).filter(Boolean)
-  if (queryWords.length === 0) return []
+| Syntax | Meaning |
+|--------|---------|
+| `variable: string` | holds a string |
+| `variable: string \| null` | a string *or* `null` (exactly how "no tafsir" is represented) |
+| `function foo(): Promise<Metadata>` | async server function returning metadata |
+| `props: { id: string }` | an object type |
+| `value?.property` | optional access — `undefined` if missing |
+| `s.id === Number(id)` | params arrive as strings; compare after converting |
 
-  const matches: SearchMatch[] = []
+Read `: type` as a *label on the box*. You don't need to write TS to follow the flow.
 
-  for (const [surahId, sections] of Object.entries(data)) {
-    for (const section of sections) {
-      const matchCount = queryWords.filter(word =>
-        section.text.includes(word)
-      ).length
+### 14.3 `export default` vs `export`
 
-      if (matchCount > 0) {
-        matches.push({
-          surahId: Number(surahId),
-          surahName: surahNames.get(Number(surahId)) ?? '',
-          startVerse: section.startVerse,
-          endVerse: section.endVerse,
-          excerpt: generateExcerpt(section.text, queryWords),
-          score: matchCount
-        })
-      }
-    }
-  }
+- Server pages export a **default** async function (`export default async function SurahPage`).
+- Route handlers export **named** functions per method (`export async function GET`).
+- Client components mostly use **named** exports (`export function Sidebar`), but `lazy()` chunks are wrapped to expose a default (`import('./OverviewTab').then(m => ({ default: m.OverviewTab }))`).
 
-  return matches
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 50)  // max 50 results
-}
-```
+Quick rule: curly braces in the import → named export (`import { Sidebar }`); no braces → default (`import SurahPage `).
 
-**The scoring is simple:** count how many of the search query's words appear in the section text. More word matches = higher score.
-
-### Highlighting — `highlightText()` in `utils/highlight.ts`
-
-When displaying search results, the matching words need to be highlighted. The `highlightText` function splits text into segments:
-
-```ts
-export function highlightText(text: string, query: string): HighlightSegment[] {
-  const words = query.trim().split(/\s+/)
-  const pattern = new RegExp(`(${words.map(escapeRegex).join('|')})`, 'gi')
-  const segments: HighlightSegment[] = []
-  let lastIndex = 0
-
-  text.replace(pattern, (match, ...args) => {
-    const index = args[args.length - 2]  // match index
-    segments.push({ text: text.slice(lastIndex, index), highlighted: false })
-    segments.push({ text: match, highlighted: true })
-    lastIndex = index + match.length
-    return match
-  })
-
-  segments.push({ text: text.slice(lastIndex), highlighted: false })
-  return segments
-}
-```
-
-And the `HighlightedText` component renders it:
+### 14.4 Conditional rendering
 
 ```tsx
-export default function HighlightedText({ text, query }: Props) {
-  const segments = highlightText(text, query)
-  return segments.map((seg, i) =>
-    seg.highlighted
-      ? <mark key={i} className="bg-gilded-gold/20 text-gilded-gold">{seg.text}</mark>
-      : <span key={i}>{seg.text}</span>
-  )
-}
+{hasTafsir ? <TafsirContent … /> : <MissingSurahMessage />}   // if / else
+{searching && <Spinner />}                                    // show-or-nothing
 ```
 
-### Quick Search
+### 14.5 The `key` prop
 
-`QuickSearch.tsx` renders 10 predefined search buttons for common Islamic topics: التوحيد, الربا, الجهاد, النفس, الإيمان, الموت, السماء, النار, التقوى, الصبر. Clicking one fills the search input and triggers a search.
+Mapped lists always carry a stable key (`key={surah.id}`, `key={match.surahId-…}`, `key={tab.key}`). For static, non-reordering lists index keys are acceptable.
+
+### 14.6 `memo` for heavy-but-static chrome
+
+`SurahBanner` and `Footer` are wrapped in `memo` — their props barely change, so they skip re-rendering on every state twist elsewhere.
 
 ---
 
-## 10. Styling — Tailwind CSS v4 + Dark Mode
+## 15. Common Mistakes — What to Watch For
 
-The app uses **Tailwind CSS v4**, the latest version of the popular utility-first CSS framework. v4 is significantly different from v3 — no config file needed.
+### 15.1 Not awaiting `params` / `searchParams` in server components
 
-### What's "Utility-First CSS"?
-
-Instead of writing:
-
-```css
-.sidebar-button {
-  padding: 8px 16px;
-  border-radius: 8px;
-  background-color: #1E1E1E;
-  color: #E0E0E0;
-  font-size: 14px;
+```tsx
+// WRONG — params is a Promise in Next 16 server components
+export default async function Page({ params }) {
+  const id = params.id;   // "promise is not defined"-style surprises
 }
+// RIGHT
+const { id } = await params;
 ```
 
-You write classes directly in your JSX:
+Same rule for `searchParams` in pages and route handlers.
 
-```tsx
-<button className="px-4 py-2 rounded-lg bg-brand-dark-hover text-brand-dark-active text-sm">
-  الفاتحة
-</button>
-```
+### 15.2 Touching `localStorage` during render
 
-Each class maps to one CSS property. `px-4` = `padding-left: 1rem; padding-right: 1rem`. `rounded-lg` = `border-radius: 0.5rem`.
+The server doesn't have it, so this breaks hydration or just never works. Read storage in a **mount effect**, keep a `hydrated` flag, and guard writes with it (the exact shape in `useLocalStorageState`).
 
-### The Theme System — Not What You'd Expect
+### 15.3 `useSearchParams()` without a `<Suspense>` wrapper
 
-**Most** React apps with Tailwind and dark mode use Tailwind's `dark:` prefix:
+Next 16 requires the boundary. Copy the `SurahReader`/`SurahReaderInner` split if you add a new hook usage on a page.
 
-```tsx
-<div className="bg-white dark:bg-black">
-```
+### 15.4 Running dev/build without `--webpack`
 
-This project does **not** do that. Instead, it uses **React Context** to control which class gets applied:
+Turbopack skips the serwist webpack hook → **no `public/sw.js`** → PWA silently broken. Always `next dev --webpack` / `next build --webpack`.
 
-```tsx
-const { isDarkMode } = useTheme()
+### 15.5 Importing the Supabase service key into a client component
 
-<div className={isDarkMode ? 'bg-brand-dark-bg' : 'bg-brand-parchment'}>
-```
+The `SUPABASE_SERVICE_ROLE_KEY` bypasses RLS. It must stay server-side-only (route handlers). The browser goes through our `/api/*` route handlers, which add the `x-device-id` identity server-side.
 
-Why? Because `dark:` in Tailwind relies on a CSS media query or a class on `<html>`. This project uses JavaScript state instead, giving more control and smoother transitions.
+### 15.6 Using `left`/`right` where RTL means `start`/`end`
 
-### Custom Theme Colors
+An element positioned `left-0` reads wrong in an RTL doc. Use logical properties, and check where the sidebar is actually anchored (`right-0`) before "fixing" it.
 
-In `src/index.css`, the `@theme` block defines the project's palette:
+### 15.7 Forgetting retry/backoff exists
 
-```css
-@theme {
-  --color-gilded-gold: #F27D26;        /* Brand accent — gold */
-  --color-brand-parchment: #FAF9F6;    /* Light background */
-  --color-brand-dark-bg: #0E0E0E;      /* Dark background */
-  --color-brand-dark-surface: #151515;  /* Dark card surface */
-  --color-brand-dark-hover: #1E1E1E;   /* Dark hover state */
-  --color-brand-dark-active: #E0E0E0;  /* Dark text color */
-}
-```
+`syncBackend` debounces 1.5s and retries up to 3× — a `fetch` to `/api/user-data` from your own test code should replicate this or the flags (`dhilal_sync_pending`) will disagree.
 
-These are used everywhere as `text-gilded-gold`, `bg-brand-parchment`, etc.
+### 15.8 Hooks in conditionals / relying on stale setter state
 
-### How the Theme Toggle Works
-
-1. User clicks the Sun/Moon icon in the header
-2. `toggleTheme()` flips `isDarkMode` from `true` to `false`
-3. All components re-render with the new class names
-4. The change is saved to `localStorage` so it persists after refresh
-
-### Arabic Fonts
-
-The app loads four Google Fonts for Arabic and display text:
-- **Tajawal** — The main sans-serif font for UI text
-- **Amiri** — A beautiful Arabic serif font for tafsir reading
-- **Playfair Display** — English serif for decorative headings
-- **JetBrains Mono** — Monospace for code
-
-> **Deeper dive:** See the Styling section in [`docs/REACT-19-BEST-PRACTICES.md`](./REACT-19-BEST-PRACTICES.md).
+Standard React food for thought from the old guide, still fully true here: hooks must run unconditionally every render, and `setState` values are only visible in the *next* render (use `useEffect` to react to changes).
 
 ---
 
-## 11. Build & Deploy — What `pnpm run build` Does
-
-When you run `pnpm run build`, two things happen in sequence:
-
-### Step 1: `vite build` — Bundle the React App
-
-Vite takes all the `src/` files and creates optimized bundles:
+## 16. The Full Lifecycle
 
 ```
-Before (development):                     After (production):
-src/main.tsx                              dist/assets/index-abc123.js
-src/App.tsx                               dist/assets/index-abc123.css
-src/components/*.tsx                      dist/assets/OverviewTab-xyz789.js
-src/data/tafsir.ts (~18MB)                dist/assets/ChatTab-def456.js
-src/index.css                             dist/index.html
-```
-
-**What Vite does:**
-1. **Tree-shaking** — Removes unused code. If a function isn't imported anywhere, it's excluded.
-2. **Code splitting** — `React.lazy()` imports (the tabs) become separate files. The 18MB tafsir data becomes its own chunk, loaded only when needed.
-3. **Minification** — Variable names are shortened, whitespace removed, file size reduced.
-4. **CSS processing** — Tailwind scans your JSX for class names, generates only the CSS you actually used, and purges the rest. The resulting CSS is tiny.
-
-### Step 2: `esbuild server.ts` — Bundle the Server
-
-The server also needs to be "built" because Node.js doesn't understand TypeScript imports directly.
-
-```
-Before:              After:
-server.ts            dist/server.cjs  (single CommonJS file)
-server/routes/health.ts
-```
-
-**What esbuild does:**
-- Bundles `server.ts` and its imports into one file
-- `--packages=external` — keeps `node_modules` imports as `require()` calls (no need to bundle Express itself)
-- Outputs **CommonJS** format (`.cjs`) because Node.js uses CommonJS by default
-
-### The Final `dist/` Folder
-
-```
-dist/
-├── index.html           ← Updated with hashed asset references
-├── assets/
-│   ├── index-abc123.js  ← Main React bundle (no tafsir)
-│   ├── index-abc123.css ← Compiled Tailwind CSS
-│   ├── tafsir-789xyz.js ← The 18MB tafsir data (lazy chunk)
-│   ├── OverviewTab-*.js ← Lazy-loaded tab
-│   ├── VersesTab-*.js   ← Lazy-loaded tab
-│   ├── ChatTab-*.js     ← Lazy-loaded tab
-│   └── StatsTab-*.js    ← Lazy-loaded tab
-└── server.cjs           ← Bundled Express server
-```
-
-### How the Production Server Works
-
-When you run `node dist/server.cjs`, the Express server starts in **production mode** (`NODE_ENV === 'production'`):
-
-```ts
-if (process.env.NODE_ENV === 'production') {
-  // Serve pre-built files directly from disk
-  app.use(express.static('dist'))
-
-  // Any unrecognized route → send index.html (SPA fallback)
-  app.get('*', (req, res) => {
-    res.sendFile(path.resolve('dist/index.html'))
-  })
-}
-```
-
-The `express.static('dist')` middleware handles serving `index.html`, CSS, and JS files. The `GET *` fallback ensures that if someone navigates directly to a deep URL (which doesn't exist as a real route — remember, there's no React Router), they get the app's HTML, and React takes over on the client side.
-
----
-
-## 12. Glossary of React Terms
-
-| Term | Simple Definition |
-|------|------------------|
-| **Component** | A function that returns what the UI should look like. Like a custom HTML element. |
-| **JSX** | HTML-like syntax inside JavaScript: `<div>Hello</div>`. Gets compiled to `React.createElement('div', null, 'Hello')`. |
-| **Props** | Arguments passed to a component: `<User name="Ali" age={25} />`. Read-only. |
-| **State** | Data that a component remembers between renders. Changes to state trigger re-renders. |
-| **Hook** | A function starting with `use` that gives components superpowers (state, effects, refs, etc.). |
-| **useState** | Hook that creates a "memory box" with a setter. `const [count, setCount] = useState(0)`. |
-| **useEffect** | Hook that runs code after render. Used for side effects: loading data, saving to localStorage, etc. |
-| **Context** | A way to broadcast a value to all descendants without passing it through props at every level. |
-| **Provider** | The component that "broadcasts" the Context value. Wraps the subtree that should receive it. |
-| **Lazy Loading** | Loading code only when it's needed, not at startup. Done via dynamic `import()`. |
-| **Memo** | `React.memo()` — wraps a component so it only re-renders if its props actually changed (not just because parent re-rendered). |
-| **Error Boundary** | A special component that catches rendering errors and shows a fallback UI instead of crashing. |
-| **Re-render** | When React calls a component function again because state or props changed, to update the UI. |
-| **Virtual DOM** | React's lightweight copy of the real DOM. React compares (diffs) the virtual DOM after re-renders and applies only the minimum changes to the real DOM. |
-
----
-
-## 13. React Patterns You'll See On Every Page
-
-This chapter covers the patterns and syntax you'll encounter in virtually every file. Understanding these will let you read any component in the project.
-
-### 13.1 TypeScript for Reading
-
-The entire codebase is TypeScript. You don't need to write it yet — you just need to **read** it. Here's what the symbols mean:
-
-| Syntax | Meaning | Example |
-|--------|---------|---------|
-| `variable: string` | "this variable holds a string" | `const name: string = "Al-Fatihah"` |
-| `variable: number` | "this variable holds a number" | `const id: number = 1` |
-| `variable: boolean` | "this variable holds true/false" | `const isDark: boolean = true` |
-| `variable: string \| null` | "this variable is either a string OR null" | `const text: string \| null = null` |
-| `function foo(): number` | "this function returns a number" | `function getCount(): number { return 5 }` |
-| `props: { name: string }` | "props is an object with a name field that's a string" | Type for component props |
-| `value!` | "trust me, this is not null/undefined" | `document.getElementById('root')!` |
-| `value?.property` | "if value exists, access its property; otherwise undefined" | `user?.name` |
-| `as number` | "treat this value as a number" (less common, used when you know better than TypeScript) | |
-
-**You don't need to learn TypeScript deeply.** The `: type` annotations are like labels on boxes — they tell you what's inside. When you see `count: number`, read it as "count, which is a number."
-
-### 13.2 `export default` vs `export`
-
-This is confusing because both patterns appear in this project. Let's settle it:
-
-```tsx
-// Pattern A: named export (used by most components)
-export function Sidebar() { ... }
-// Import: import { Sidebar } from './Sidebar'
-//          ^^^^^^^^^ curly braces = named import
-
-// Pattern B: default export (used by lazy-loaded tabs)
-export default function OverviewTab() { ... }
-// Import: import OverviewTab from './OverviewTab'
-//          ^^^^^^^^ no curly braces = default import
-
-// Pattern C: both! (used by OverviewTab, VersesTab, ChatTab, StatsTab)
-export function OverviewTab() { ... }   // ← named: for direct imports
-export default OverviewTab              // ← default: for React.lazy()
-```
-
-**Why both?** `React.lazy()` (see section 13.5) requires a default export. But named exports are cleaner for normal imports. So these components have both — the named export for regular use, and the default export just to satisfy `lazy()`.
-
-**Quick rule:**
-- If you see `import { Something }` — it's a named export (curly braces)
-- If you see `import Something` — it's a default export (no curly braces)
-- `import { Something } from './file'` vs `import Something from './file'` are asking for different things
-
-### 13.3 Conditional Rendering
-
-React doesn't have `if/else` in JSX. Instead, you use JavaScript expressions:
-
-```tsx
-// Pattern 1: ternary (if/else)
-{isDarkMode ? <DarkIcon /> : <LightIcon />}
-//            "if true"          "if false"
-
-// Pattern 2: logical AND (show or nothing)
-{hasTafsir && <TafsirContent />}
-//            ^^^^ "if hasTafsir is true, render TafsirContent"
-
-// Pattern 3: logical OR (fallback)
-{tafsirText || <MissingSurahMessage />}
-//            ^^^^ "if tafsirText is falsy, show the message instead"
-```
-
-**What the `&&` pattern does step by step:**
-1. JavaScript evaluates `hasTafsir`
-2. If `true`, it returns whatever is after `&&` (`<TafsirContent />`)
-3. If `false`, it returns `false` (React ignores `false` in render)
-
-This is why you'll see `{condition && <Component />}` everywhere — it's the idiomatic way to conditionally render something in React.
-
-### 13.4 The `key` Prop
-
-You'll see `key={i}` or `key={surah.id}` on elements inside `.map()`:
-
-```tsx
-{sections.map((section, i) => (
-  <p key={i}>{section.text}</p>
-))}
-```
-
-**Why is `key` needed?** React uses `key` to track which items changed, were added, or were removed. Without `key`, if the list changes, React might re-render everything inefficiently or (worse) keep wrong state attached to the wrong item.
-
-**Rules for keys:**
-- Always add `key` when using `.map()` to create elements
-- Use a unique ID if available (`surah.id`), not the array index, if the list can be reordered
-- Using index (`key={i}`) is fine for static lists that don't change order
-
-### 13.5 `React.lazy()` + `Suspense` — Code Splitting
-
-This is how the tabs avoid loading all code at once. In `MainContent.tsx`:
-
-```tsx
-const OverviewTab = React.lazy(() => import('./OverviewTab'))
-const VersesTab = React.lazy(() => import('./VersesTab'))
-const ChatTab = React.lazy(() => import('./ChatTab'))
-const StatsTab = React.lazy(() => import('./StatsTab'))
-```
-
-**What happens here:**
-1. `React.lazy()` takes a function that calls `import('./OverviewTab')`
-2. The browser does NOT fetch `OverviewTab` at page load
-3. It only fetches the file when `OverviewTab` is about to be rendered
-4. While the file is loading, `<Suspense>` shows a spinner
-
-```tsx
-<Suspense fallback={<div className="...">جاري التحميل...</div>}>
-  {activeTab === 'overview' && <OverviewTab />}
-</Suspense>
-```
-
-**Analogy:** Netflix doesn't download every movie when you open the app. It downloads the homepage first, then downloads a movie only when you click "Play." `lazy()` is "download on demand."
-
-### 13.6 The Re-render Cycle & Virtual DOM
-
-This is the most important mental model in React.
-
-**Step 1: State changes.** You call `setSelectedSurah(2)`.
-
-**Step 2: React re-calls the component.** React calls `App()` again from the top. This is called a **re-render**.
-
-**Step 3: React produces a new Virtual DOM.** The "Virtual DOM" is React's lightweight copy of the real DOM — just JavaScript objects, not actual browser elements:
-
-```
-Before:                             After:
-<div className="...">               <div className="...">
-  <Sidebar selectedSurah={1} />       <Sidebar selectedSurah={2} />
-  <MainContent tafsirText={...}/>     <MainContent tafsirText={...}/>
-</div>                               </div>
-```
-
-**Step 4: React diffs the two versions.** It compares the "before" virtual DOM with the "after" virtual DOM and identifies the minimum changes needed.
-
-**Step 5: React applies only those changes to the real DOM.** It doesn't rebuild the whole page — just the specific elements that changed.
-
-**The key insight:** React re-calls ALL components during re-render by default. That's why `React.memo()` exists — it says "skip this component if its props haven't changed." You'll see it on `SurahBanner` and `Footer` because they rarely change and don't need to re-render every time.
-
----
-
-## 14. Common Mistakes — What to Watch For
-
-These are the most common pitfalls juniors hit when working with this codebase.
-
-### 14.1 Forgetting That `useState` Setter is Async
-
-```tsx
-// WRONG — won't work as expected
-setSelectedSurah(2)
-console.log(selectedSurah)  // still shows the OLD value!
-```
-
-The `setSelectedSurah` function schedules an update, it doesn't happen immediately. The new value will be available in the **next render**, not the current one. If you need to act after state changes, use `useEffect`.
-
-### 14.2 Calling Hooks Conditionally
-
-```tsx
-// WRONG — hooks must be called in the same order every render
-if (someCondition) {
-  const [value, setValue] = useState(0)
-}
-```
-
-React relies on hooks being called in the exact same order every render. If you put a hook inside an `if`, the order breaks and React throws an error. Hooks must always be at the top level of your component.
-
-### 14.3 Mutating State Directly
-
-```tsx
-// WRONG — this won't trigger a re-render
-bookmarks.push(newBookmark)
-
-// RIGHT — create a new array
-setBookmarks([...bookmarks, newBookmark])
-```
-
-React only knows state changed when you call the setter function. Mutating an array or object without calling the setter changes the value but doesn't tell React to re-render.
-
-### 14.4 Confusing `export default` and `export`
-
-If you see this error:
-
-```
-The requested module './Component' does not provide an export named 'Component'
-```
-
-It means you're trying a named import (`import { Component }`) for a file that only has a default export (`export default Component`). Use `import Component from './Component'` instead (no curly braces).
-
-### 14.5 Forgetting the Dependency Array in `useEffect`
-
-```tsx
-useEffect(() => {
-  fetchTafsir(selectedSurah)
-})  // ← runs on EVERY render (missing [])
-```
-
-Without the dependency array, `useEffect` runs after every single render — causing infinite loops if it sets state. Always add the array:
-- `useEffect(fn, [])` — runs once after first render
-- `useEffect(fn, [selectedSurah])` — runs when `selectedSurah` changes
-
-### 14.6 Missing `key` on Mapped Elements
-
-If you see a console warning about "Each child in a list should have a unique 'key' prop," you forgot to add `key` to elements inside `.map()`. Add `key={item.id}` or `key={index}`.
-
-### 14.7 Thinking `localStorage` is Server-Side
-
-Local storage lives in the browser, not on the server. If you build for production and run `node dist/server.cjs`, the server has no access to `localStorage`. All `localStorage` operations happen in the browser, inside React components, after the page loads.
-
----
-
-## Summary: The Full Lifecycle
-
-```
-1. BROWSER REQUESTS PAGE
-       │
-       ▼
-2. EXPRESS SERVER sends index.html (nearly empty)
-       │
-       ▼
-3. main.tsx EXECUTES
-       │
-       ├── createRoot() claims <div id="root">
-       │
-       ▼
-4. REACT MOUNTS component tree
-       │
-       ├── ErrorBoundary (catches crashes)
-       ├── ThemeProvider (reads localStorage, provides dark/light)
-       └── App.tsx
-               │
-               ├── useAppState() initializes all state
-               │   ├── selectedSurah = 1 (Al-Fatihah)
-               │   ├── activeTab = 'overview'
-               │   ├── Bookmarks from localStorage
-               │   ├── History from localStorage
-               │   └── Completed surahs from localStorage
-               │
-               ▼
-5. FIRST RENDER — user sees surah list + Fatihah tafsir
-       │
-       ▼
-6. useEffect runs: fetchTafsir(1, 'كاملة')
-       │
-       ├── dynamic import('./tafsir') → 18MB loads asynchronously
-       ├── getTafsirText() → extracts Al-Fatihah's text
-       ├── formatTafsirParagraphs() → structures into paragraphs
-       └── TafsirContent renders gold-highlighted ayah text
-       │
-       ▼
-7. USER INTERACTS
-       │
-       ├── Clicks surah → setSelectedSurah → re-render → new tafsir
-       ├── Toggles dark mode → Context updates → all components re-class
-       ├── Searches → loads tafsir if needed → searchTafsir() → results
-       └── Bookmarks → localStorage.save() → state updates → UI updates
-       │
-       ▼
-8. BUILD TIME (pnpm run build)
-       │
-       ├── vite build: bundles React app with code splitting
-       └── esbuild server.ts: bundles server into single .cjs file
-       │
-       ▼
-9. PRODUCTION: node dist/server.cjs serves everything statically
+A. BUILD TIME  (pnpm run build = next build --webpack)
+   1. generateStaticParams()               → 114 surah ids
+   2. For each id (+ "/"):
+        await params → find surah → loadTafsirData() → getTafsirText(..., 'كاملة')
+        → generateMetadata + JSON-LD Book  → render <SurahReader initialTafsirText={…}/>
+        → static .html with FULL Arabic tafsir inlined
+   3. @serwist/next compiles src/app/sw.ts  → public/sw.js (precache manifest baked in)
+   4. sitemap.xml (115 URLs), robots.txt, manifest.webmanifest generated
+        │
+        ▼
+B. REQUEST — visiting /surah/2
+   1. Static HTML served instantly (no page code runs at request time)
+   2. RootLayout: <html lang="ar" dir="rtl">, fonts, metadata
+   3. (reader) layout: AppStateProvider → WorkstationShell
+   4. surah/[id] page output: SurahReader with surah 2 + its tafsir as props
+        │
+        ▼
+C. HYDRATION — the page comes alive
+   1. React 19 resumes the DOM; client components become interactive
+   2. ThemeProvider + useLocalStorageState hydrate from localStorage (mount-read, guarded writes)
+   3. useDataSync → GET /api/user-data (x-device-id) → pulls cloud data → localStorage
+   4. Service worker registers and takes control
+        │
+        ▼
+D. INTERACTION
+   • Click surah in sidebar → router.push('/surah/6')   → client-side navigation (no reload)
+   • Click a tab → router.replace('?tab=verses')        → lazy chunk loads, tab animates in
+   • Search "التوحيد" → loadTafsirData() (19MB chunk) → searchTafsir() → highlights → click → ?tab=verses
+   • Bookmark / finish / toggle theme → localStorage.set → notifyChange → (1.5s debounce)
+     → PUT /api/user-data → route handler → Supabase upsert(onConflict device_id)
+        │
+        ▼
+E. PRODUCTION SERVING
+   next start / Vercel: static pages + route handlers, service worker caches
+   pages & /api/* NetworkFirst → reading works even offline
 ```
 
 ---
 
-> **Next steps:** Want to get into the code? Start with `src/App.tsx` and the component it renders. Read the `src/hooks/` files one at a time. Each hook is only 30-80 lines.
+> **Next steps:** Want to get into the code? Start at the request path you just traced: `src/app/(reader)/surah/[id]/page.tsx` (server side) → `src/components/SurahReader.tsx` + `WorkstationShell.tsx` (client side). Then work outward through `src/context/AppStateContext.tsx`, the individual `src/hooks/*`, and the route handlers under `src/app/api/`.
 >
-> If you hit something confusing while reading, revisit **Chapter 13 (Patterns)** and **Chapter 14 (Common Mistakes)** — they cover the syntax and gotchas you're most likely to encounter.
+> Revisit **Chapters 2 and 14** whenever a file's "where does this run?" is unclear, and **Chapter 15** for the traps most likely to bite.
 >
-> For deeper explanations of specific React patterns, see [`docs/REACT-19-BEST-PRACTICES.md`](./REACT-19-BEST-PRACTICES.md).
+> For deeper React patterns see [`docs/REACT-19-BEST-PRACTICES.md`](./REACT-19-BEST-PRACTICES.md), and for the test suite see [`docs/TESTING.md`](./TESTING.md).

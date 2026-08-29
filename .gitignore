@@ -19,6 +19,7 @@ command-center/
 docs/superpowers/
 .vercel/
 supabase/
+graphify-out/
 
 tsconfig.tsbuildinfo
 .fuse_hidden*

@@ -1,9 +1,12 @@
+'use client';
+
 import { Suspense, lazy } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'motion/react';
 import { useTheme } from '../context/ThemeContext';
+import { useAppState } from '../context/AppStateContext';
+import { useTafsir } from '../hooks/useTafsir';
 import type { Surah } from '../types';
-import type { SearchMatch } from '../utils/search';
-import type { Bookmark, HistoryItem } from '../types';
 import { Header } from './Header';
 import { SurahBanner } from './SurahBanner';
 import { TabBar } from './TabBar';
@@ -14,49 +17,45 @@ const VersesTab = lazy(() => import('./VersesTab').then(m => ({ default: m.Verse
 const ChatTab = lazy(() => import('./ChatTab').then(m => ({ default: m.ChatTab })));
 const StatsTab = lazy(() => import('./StatsTab').then(m => ({ default: m.StatsTab })));
 
-interface MainContentProps {
-  selectedSurah: Surah;
-  activeTab: 'overview' | 'verses' | 'chat' | 'stats';
-  setActiveTab: (tab: 'overview' | 'verses' | 'chat' | 'stats') => void;
-  mobileSidebarOpen: boolean;
-  setMobileSidebarOpen: (v: boolean) => void;
-  toggleBookmark: (surahId: number, verseIndex?: number) => void;
-  isBookmarked: (surahId: number, verseIndex?: number) => boolean;
-  toggleComplete: (surahId: number) => void;
-  completedSurahs: number[];
-  tafsirText: string | null;
-  verseRangeValue: string;
-  setVerseRangeValue: (v: string) => void;
-  fetchTafsir: (surah: Surah, range: string) => void;
-  hasTafsir: (surahId: number) => boolean;
-  searchInput: string;
-  setSearchInput: (v: string) => void;
-  results: SearchMatch[];
-  searching: boolean;
-  bottomRef: React.RefObject<HTMLDivElement | null>;
-  handleSearch: (query: string) => void;
-  clearResults: () => void;
-  handleNavigateToSurah: (surahId: number) => void;
-  bookmarks: Bookmark[];
-  readingHistory: HistoryItem[];
-  clearAll: () => void;
-  removeBookmark: (id: string) => void;
+type TabId = 'overview' | 'verses' | 'chat' | 'stats';
+
+const VALID_TABS: TabId[] = ['overview', 'verses', 'chat', 'stats'];
+
+interface SurahReaderProps {
+  surah: Surah;
+  initialTafsirText: string | null;
 }
 
-export function MainContent(props: MainContentProps) {
+function SurahReaderInner({ surah, initialTafsirText }: SurahReaderProps) {
   const { isDarkMode } = useTheme();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const requestedTab = searchParams.get('tab') as TabId | null;
+  const activeTab: TabId = requestedTab && VALID_TABS.includes(requestedTab) ? requestedTab : 'overview';
+  const setActiveTab = (tab: TabId) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (tab === 'overview') params.delete('tab');
+    else params.set('tab', tab);
+    const qs = params.toString();
+    router.replace(qs ? `?${qs}` : window.location.pathname);
+  };
+
+  const { tafsirText, verseRangeValue, setVerseRangeValue, fetchTafsir, hasTafsir } = useTafsir(initialTafsirText);
   const {
-    selectedSurah, activeTab, setActiveTab, setMobileSidebarOpen,
+    setMobileSidebarOpen,
     toggleBookmark, isBookmarked, toggleComplete, completedSurahs,
-    tafsirText, verseRangeValue, setVerseRangeValue, fetchTafsir, hasTafsir,
     searchInput, setSearchInput, results, searching, bottomRef, handleSearch, clearResults,
-    handleNavigateToSurah, bookmarks, readingHistory, clearAll, removeBookmark,
-  } = props;
+    bookmarks, readingHistory, clearAll, removeBookmark,
+  } = useAppState();
+
+  const handleNavigateToSurah = (surahId: number) => {
+    router.push(`/surah/${surahId}?tab=verses`);
+  };
 
   return (
     <main className="flex-1 h-full flex flex-col overflow-hidden relative" id="main-reading-canvas">
       <Header
-        selectedSurah={selectedSurah}
+        selectedSurah={surah}
         setMobileSidebarOpen={setMobileSidebarOpen}
         toggleBookmark={toggleBookmark}
         isBookmarked={isBookmarked}
@@ -66,7 +65,7 @@ export function MainContent(props: MainContentProps) {
 
       <div className="flex-1 overflow-y-auto" id="reading-scroll-pane">
         <div className="w-full px-4 sm:px-8 md:px-12 py-8 md:py-12 space-y-8">
-          <SurahBanner selectedSurah={selectedSurah} />
+          <SurahBanner selectedSurah={surah} />
           <TabBar activeTab={activeTab} setActiveTab={setActiveTab} />
 
           <Suspense fallback={<div className="flex justify-center py-16"><div className="w-8 h-8 border-2 border-gilded-gold/20 border-t-gilded-gold animate-spin" /></div>}>
@@ -74,8 +73,8 @@ export function MainContent(props: MainContentProps) {
               {activeTab === 'overview' && (
                 <OverviewTab
                   tafsirText={tafsirText}
-                  selectedSurah={selectedSurah}
-                  hasTafsir={hasTafsir(selectedSurah.id)}
+                  selectedSurah={surah}
+                  hasTafsir={hasTafsir(surah.id)}
                 />
               )}
               {activeTab === 'verses' && (
@@ -83,9 +82,9 @@ export function MainContent(props: MainContentProps) {
                   tafsirText={tafsirText}
                   verseRangeValue={verseRangeValue}
                   setVerseRangeValue={setVerseRangeValue}
-                  selectedSurah={selectedSurah}
+                  selectedSurah={surah}
                   fetchTafsir={fetchTafsir}
-                  hasTafsir={hasTafsir(selectedSurah.id)}
+                  hasTafsir={hasTafsir(surah.id)}
                 />
               )}
               {activeTab === 'chat' && (
@@ -116,5 +115,14 @@ export function MainContent(props: MainContentProps) {
         </div>
       </div>
     </main>
+  );
+}
+
+export function SurahReader(props: SurahReaderProps) {
+  const { isDarkMode } = useTheme();
+  return (
+    <Suspense fallback={<div className={`h-full ${isDarkMode ? 'bg-brand-dark-bg' : 'bg-brand-parchment'}`} />}>
+      <SurahReaderInner {...props} />
+    </Suspense>
   );
 }

@@ -22,3 +22,6 @@ supabase/
 
 tsconfig.tsbuildinfo
 .fuse_hidden*
+public/sw.js
+public/swe-worker*
+public/sw.js.map

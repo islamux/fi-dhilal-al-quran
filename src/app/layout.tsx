@@ -12,7 +12,6 @@ export const metadata: Metadata = {
     template: '%s — في ظلال القرآن',
   },
   description: 'تفسير في ظلال القرآن - سيد قطب',
-  manifest: '/manifest.webmanifest',
   robots: { index: true, follow: true },
 };
 

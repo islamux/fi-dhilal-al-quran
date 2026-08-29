@@ -4,7 +4,8 @@
     "lib": [
       "ES2022",
       "DOM",
-      "DOM.Iterable"
+      "DOM.Iterable",
+      "WebWorker"
     ],
     "skipLibCheck": true,
     "module": "ESNext",
@@ -24,7 +25,8 @@
       ]
     },
     "types": [
-      "node"
+      "node",
+      "@serwist/next/typings"
     ],
     "allowImportingTsExtensions": true,
     "noEmit": true,
@@ -41,6 +43,7 @@
     ".next/dev/types/**/*.ts"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "public/sw.js"
   ]
 }

@@ -96,6 +96,7 @@ function createSyncBackend() {
   }
 
   function isSyncPending(): boolean {
+    if (typeof window === 'undefined' || typeof window.localStorage === 'undefined') return false;
     return localStorage.getItem(SYNC_PENDING_KEY) === 'true';
   }
 

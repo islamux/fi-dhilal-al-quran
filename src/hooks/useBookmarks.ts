@@ -1,17 +1,10 @@
-import { useState, useEffect } from 'react';
 import type { Bookmark } from '../types';
-import { localStorageBackend } from '../utils/localStorage';
+import { useLocalStorageState } from './useLocalStorageState';
 
 const BOOKMARKS_KEY = 'dhilal_bookmarks';
 
 export function useBookmarks() {
-  const [bookmarks, setBookmarks] = useState<Bookmark[]>(() =>
-    localStorageBackend.get<Bookmark[]>(BOOKMARKS_KEY) ?? []
-  );
-
-  useEffect(() => {
-    localStorageBackend.set(BOOKMARKS_KEY, bookmarks);
-  }, [bookmarks]);
+  const [bookmarks, setBookmarks] = useLocalStorageState<Bookmark[]>(BOOKMARKS_KEY, []);
 
   const toggleBookmark = (surahId: number, verseIndex?: number) => {
     const id = verseIndex !== undefined ? `${surahId}-${verseIndex}` : `${surahId}`;

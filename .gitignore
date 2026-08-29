@@ -1,6 +1,7 @@
 node_modules/
 build/
 dist/
+.next/
 coverage/
 .DS_Store
 *.log
@@ -18,3 +19,10 @@ command-center/
 docs/superpowers/
 .vercel/
 supabase/
+graphify-out/
+
+tsconfig.tsbuildinfo
+.fuse_hidden*
+public/sw.js
+public/swe-worker*
+public/sw.js.map

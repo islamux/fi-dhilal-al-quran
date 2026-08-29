@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { localStorageBackend } from '../utils/localStorage';
 
 const DEVICE_ID_KEY = 'dhilal_device_id';
@@ -11,7 +11,12 @@ export function getDeviceId(): string {
   return id;
 }
 
-export function useDeviceId(): string {
-  const [deviceId] = useState(getDeviceId);
+export function useDeviceId(): string | null {
+  const [deviceId, setDeviceId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setDeviceId(getDeviceId());
+  }, []);
+
   return deviceId;
 }

@@ -3,7 +3,7 @@ import { syncBackend } from '../utils/syncBackend';
 import { localStorageBackend } from '../utils/localStorage';
 
 export function useDataSync() {
-  const [syncPending, setSyncPending] = useState(syncBackend.isSyncPending());
+  const [syncPending, setSyncPending] = useState(false);
 
   useEffect(() => {
     let cancelled = false;

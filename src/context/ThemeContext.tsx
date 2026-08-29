@@ -11,13 +11,17 @@ interface ThemeContextValue {
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [isDarkMode, setIsDarkMode] = useState(() =>
-    localStorageBackend.get<string>(THEME_KEY) !== 'light'
-  );
+  const [isDarkMode, setIsDarkMode] = useState(true);
+  const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    localStorageBackend.set(THEME_KEY, isDarkMode ? 'dark' : 'light');
-  }, [isDarkMode]);
+    setIsDarkMode(localStorageBackend.get<string>(THEME_KEY) !== 'light');
+    setHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (hydrated) localStorageBackend.set(THEME_KEY, isDarkMode ? 'dark' : 'light');
+  }, [isDarkMode, hydrated]);
 
   const toggleTheme = () => setIsDarkMode(prev => !prev);
 

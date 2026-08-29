@@ -1,25 +1,12 @@
-import { useState, useEffect } from 'react';
 import type { Surah, HistoryItem } from '../types';
-import { localStorageBackend } from '../utils/localStorage';
+import { useLocalStorageState } from './useLocalStorageState';
 
 const HISTORY_KEY = 'dhilal_history';
 const COMPLETED_KEY = 'dhilal_completed';
 
 export function useProgress() {
-  const [readingHistory, setReadingHistory] = useState<HistoryItem[]>(() =>
-    localStorageBackend.get<HistoryItem[]>(HISTORY_KEY) ?? []
-  );
-  const [completedSurahs, setCompletedSurahs] = useState<number[]>(() =>
-    localStorageBackend.get<number[]>(COMPLETED_KEY) ?? []
-  );
-
-  useEffect(() => {
-    localStorageBackend.set(HISTORY_KEY, readingHistory);
-  }, [readingHistory]);
-
-  useEffect(() => {
-    localStorageBackend.set(COMPLETED_KEY, completedSurahs);
-  }, [completedSurahs]);
+  const [readingHistory, setReadingHistory] = useLocalStorageState<HistoryItem[]>(HISTORY_KEY, []);
+  const [completedSurahs, setCompletedSurahs] = useLocalStorageState<number[]>(COMPLETED_KEY, []);
 
   const addHistoryItem = (surah: Surah, range?: string) => {
     const item: HistoryItem = {

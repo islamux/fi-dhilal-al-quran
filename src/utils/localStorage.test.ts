@@ -45,6 +45,17 @@ describe('localStorageBackend', () => {
     expect(() => localStorageBackend.set('k', 'v')).not.toThrow();
     expect(count).toBe(1);
   });
+
+  it('returns null and does not throw when window is undefined (SSR)', () => {
+    const originalWindow = globalThis.window;
+    (globalThis as Record<string, unknown>).window = undefined;
+    try {
+      expect(localStorageBackend.get('key')).toBeNull();
+      expect(() => localStorageBackend.set('key', { a: 1 })).not.toThrow();
+    } finally {
+      (globalThis as Record<string, unknown>).window = originalWindow;
+    }
+  });
 });
 
 function createMemoryBackend() {

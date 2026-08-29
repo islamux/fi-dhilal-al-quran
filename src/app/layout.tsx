@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import { ErrorBoundary } from '../components/ErrorBoundary';
+import { ThemeProvider } from '../context/ThemeContext';
 
 const SITE_URL = process.env.SITE_URL || 'https://fi-dhilal-al-quran.vercel.app';
 
@@ -25,7 +27,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           rel="stylesheet"
         />
       </head>
-      <body>{children}</body>
+      <body>
+        <ErrorBoundary>
+          <ThemeProvider>{children}</ThemeProvider>
+        </ErrorBoundary>
+      </body>
     </html>
   );
 }

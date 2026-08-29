@@ -8,7 +8,7 @@ import type { Surah } from '../types';
 
 interface SidebarProps {
   selectedSurah: Surah;
-  setSelectedSurah: (surah: Surah) => void;
+  onSelectSurah: (id: number) => void;
   searchQuery: string;
   setSearchQuery: (v: string) => void;
   mobileSidebarOpen: boolean;
@@ -23,7 +23,7 @@ interface SidebarProps {
 }
 
 export function Sidebar({
-  selectedSurah, setSelectedSurah, searchQuery, setSearchQuery,
+  selectedSurah, onSelectSurah, searchQuery, setSearchQuery,
   mobileSidebarOpen, setMobileSidebarOpen, juzFilter, setJuzFilter,
   typeFilter, setTypeFilter, sidebarTab, setSidebarTab, completedSurahs
 }: SidebarProps) {
@@ -176,7 +176,7 @@ export function Sidebar({
                   key={surah.id}
                   role="option"
                   aria-selected={isSelected}
-                  onClick={() => { setSelectedSurah(surah); setMobileSidebarOpen(false); }}
+                  onClick={() => { onSelectSurah(surah.id); setMobileSidebarOpen(false); }}
                   className={`w-full text-right p-4 rounded-none transition-all border-b border-[#2A2A2A] flex items-center justify-between ${
                     isSelected
                       ? 'bg-gilded-gold/5 border-r-2 border-r-gilded-gold text-gilded-gold font-bold'

@@ -19,3 +19,6 @@ command-center/
 docs/superpowers/
 .vercel/
 supabase/
+
+tsconfig.tsbuildinfo
+.fuse_hidden*

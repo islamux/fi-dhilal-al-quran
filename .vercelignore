@@ -1,0 +1,18 @@
+# Local stack artifacts not needed for the Next.js build
+dist/
+.next/
+node_modules/
+
+# Source .doc files (not needed at build time — tafsir.ts is already generated and MUST be uploaded)
+fi-thila-al-quran-word-src/
+
+# Tooling / planning artifacts
+graphify-out/
+docs/superpowers/
+.opencode/
+.superpowers/
+
+# Local config & secrets
+.vercel/
+.env*
+tsconfig.tsbuildinfo

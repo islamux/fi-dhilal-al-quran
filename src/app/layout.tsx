@@ -2,11 +2,10 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { ThemeProvider } from '../context/ThemeContext';
-
-const SITE_URL = process.env.SITE_URL || 'https://fi-dhilal-al-quran.vercel.app';
+import { getSiteUrl } from '../lib/site-url';
 
 export const metadata: Metadata = {
-  metadataBase: new URL(SITE_URL),
+  metadataBase: new URL(getSiteUrl()),
   title: {
     default: 'في ظلال القرآن — خلوة التدبّر والتفسير الأدبي',
     template: '%s — في ظلال القرآن',

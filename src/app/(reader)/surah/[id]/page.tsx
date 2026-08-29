@@ -5,8 +5,7 @@ import { loadTafsirData } from '@/src/data/tafsir-loader';
 import { getTafsirText } from '@/src/utils/tafsir-data';
 import { toArabicNumerals } from '@/src/utils';
 import { SurahReader } from '@/src/components/SurahReader';
-
-const SITE_URL = process.env.SITE_URL || 'https://fi-dhilal-al-quran.vercel.app';
+import { getSiteUrl } from '@/src/lib/site-url';
 
 export async function generateStaticParams() {
   return SURAHS.map(s => ({ id: String(s.id) }));
@@ -26,7 +25,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     openGraph: {
       title: `تفسير سورة ${surah.arName} — في ظلال القرآن`,
       description,
-      url: `${SITE_URL}/surah/${surah.id}`,
+      url: `${getSiteUrl()}/surah/${surah.id}`,
       type: 'website',
       locale: 'ar_AR',
     },

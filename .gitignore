@@ -6,6 +6,7 @@ coverage/
 .DS_Store
 *.log
 .env*
+!.env.example
 # Source .doc files (binary, regeneratable from extraction)
 fi-thila-al-quran-word-src/
 
@@ -13,7 +14,6 @@ fi-thila-al-quran-word-src/
 src/data/tafsir.ts
 .opencode/
 .npmrc
-.env.example
 command-center/
 .superpowers/
 docs/superpowers/

@@ -1,9 +1,9 @@
 import type { MetadataRoute } from 'next';
 import { SURAHS } from '@/src/data/surahs';
-
-const SITE_URL = process.env.SITE_URL || 'https://fi-dhilal-al-quran.vercel.app';
+import { getSiteUrl } from '@/src/lib/site-url';
 
 export default function sitemap(): MetadataRoute.Sitemap {
+  const SITE_URL = getSiteUrl();
   const surahEntries: MetadataRoute.Sitemap = SURAHS.map(s => ({
     url: `${SITE_URL}/surah/${s.id}`,
     lastModified: new Date(),
